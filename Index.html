@@ -283,6 +283,23 @@
     .searchable-dropdown-list div:hover {
       background-color: #f0f0f0;
     }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-weight: 600;
+      color: #64748b;
+    }
+    .tab.active {
+      color: #1d4ed8;
+      border-bottom-color: #2563eb;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -363,6 +380,11 @@
           <label id="effective-date-label" class="block font-medium mt-2"></label>
           <input type="date" id="effectivedate" name="effectivedate" class="mt-1 p-2 w-full border rounded">
         </div>
+        <div id="reasonforleaving-wrapper" style="display: none;">
+            <label class="block font-medium mt-2">Reason for Leaving <span class="text-red-500">*</span></label>
+            <div id="reasonforleaving-dropdown-container" class="searchable-dropdown"></div>
+            <input type="hidden" id="reasonforleaving" name="reasonforleaving">
+        </div>
         <label class="block font-medium mt-2">Gender</label>
         <div id="gender-dropdown-container" class="searchable-dropdown"></div>
         <input type="hidden" id="gender" name="gender">
@@ -376,6 +398,21 @@
     <div class="mt-6 flex justify-end gap-3">
       <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
       <button onclick="saveEmployee()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="jd-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="flex justify-between items-center mb-4">
+      <h2 id="jd-modal-title" class="text-2xl font-bold text-slate-800">Job Description</h2>
+      <button onclick="closeJdModal()" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+    </div>
+    <div id="jd-content" class="prose max-w-none">
+      <p>Loading...</p>
+    </div>
+    <div class="mt-6 flex justify-end">
+      <button onclick="closeJdModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
     </div>
   </div>
 </div>
@@ -412,12 +449,25 @@
 <div id="app" class="p-4 sm:p-6 md:p-8">
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold text-slate-800">Interactive Organizational Chart</h1>
-    <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
+    <div class="flex space-x-2">
+      <button id="generate-masterlist-btn" onclick="generateMasterlist()" class="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700">Generate Masterlist</button>
+      <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
+    </div>
   </div>
 
-  <div id="notifications-container" class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+  <!-- Tab Navigation -->
+  <div class="border-b border-gray-200 mb-6">
+    <nav class="flex -mb-px" aria-label="Tabs">
+      <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active">Org Chart</div>
+      <div onclick="switchTab('demographics')" id="tab-demographics" class="tab">Demographics</div>
+      <div onclick="switchTab('resignation')" id="tab-resignation" class="tab">Resignation</div>
+    </nav>
+  </div>
 
-  <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
+  <!-- Org Chart View -->
+  <div id="org-chart-view" class="tab-content active">
+    <div id="notifications-container" class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Filter by Division</label>
@@ -523,10 +573,189 @@
       <div id="chart_div" style="transform-origin: top left;"></div>
     </div>
   </div>
-</div>
+  </div> <!-- Close org-chart-view -->
+
+  <!-- Demographics View -->
+  <div id="demographics-view" class="tab-content">
+    <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Division</label>
+                <div id="analytics-division-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="analytics-division-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Group</label>
+                <div id="analytics-group-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="analytics-group-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Department</label>
+                <div id="analytics-department-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="analytics-department-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Section</label>
+                <div id="analytics-section-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="analytics-section-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Level</label>
+                <div id="analytics-joblevel-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Position Status</label>
+                <div id="analytics-pos-status-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Gender</label>
+                <div id="analytics-gender-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Title</label>
+                <div id="analytics-jobtitle-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+        </div>
+        <div class="flex justify-between items-start gap-4">
+            <div id="analytics-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow w-1/3">
+                <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
+                <p class="text-3xl font-bold">--</p>
+            </div>
+            <div class="flex space-x-2">
+                <button id="analytics-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
+                <button onclick="drawAnalyticsCharts(true)" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center">
+                    <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
+                    Refresh Data
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-xl font-bold text-slate-800 mb-4">Headcount Trend</h3>
+        <div id="trends_chart_div" style="width: 100%; height: 400px;"></div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Gender</h3>
+        <div id="gender_chart_div" style="width: 100%; height: 400px;"></div>
+      </div>
+    </div>
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Status</h3>
+            <div id="status_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Contract Type</h3>
+            <div id="contract_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Job Group</h3>
+            <div id="job_group_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Length of Service</h3>
+            <div id="los_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Resignation View -->
+  <div id="resignation-view" class="tab-content">
+    <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
+        <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Division</label>
+                <div id="resignation-division-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="resignation-division-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Group</label>
+                <div id="resignation-group-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="resignation-group-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Department</label>
+                <div id="resignation-department-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="resignation-department-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Section</label>
+                <div id="resignation-section-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="resignation-section-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Level</label>
+                <div id="resignation-joblevel-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Gender</label>
+                <div id="resignation-gender-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Title</label>
+                <div id="resignation-jobtitle-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Year</label>
+                <div id="resignation-year-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+             <div>
+                <label class="block text-sm font-medium text-gray-700">Month</label>
+                <div id="resignation-month-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+        </div>
+        <div class="flex justify-end items-start gap-4">
+            <button id="resignation-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
+            <button onclick="drawResignationCharts(true)" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center">
+                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
+                Refresh Data
+            </button>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Monthly Separations</h3>
+            <div id="monthly_turnover_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Reason for Leaving</h3>
+            <div id="reason_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Gender</h3>
+            <div id="resignation_gender_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Contract Type</h3>
+            <div id="resignation_contract_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Division</h3>
+            <div id="resignation_division_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Job Group</h3>
+            <div id="resignation_job_group_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Yearly Hires and Leavers</h3>
+            <div id="hires_leavers_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+         <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">YTD Turnover Rate</h3>
+            <div id="ytd_turnover_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+  </div>
+</div> <!-- Close app -->
 
 <script>
   // --- GLOBAL VARIABLES ---
+  var analyticsDataLoaded = false;
+  var resignationDataLoaded = false;
+  var analyticsFiltersPopulated = false;
+  var resignationFiltersPopulated = false;
   var fullEmployeeData = [];
   var previousHeadcountData = {};
   var dropdownListData = {};
@@ -549,9 +778,481 @@
   var statusNotes = { 'New Hire': 'This employee is new to the company.', 'Filled Vacancy': 'This employee filled a previously vacant position.', 'Internal Transfer': 'This employee transferred from another role within the company.', 'Promotion': 'This employee was promoted from another role within the company.', 'Lateral Transfer': 'This employee transferred from a similar role within the company.' };
   var statusTagColors = { 'New Hire': '#22c55e', 'Filled Vacancy': '#3b82f6', 'Internal Transfer': '#8b5cf6', 'Promotion': '#f59e0b', 'Lateral Transfer': '#0ea5e9' };
 
+  const ANALYTICS_FILTERS_CONFIG = [
+    { id: 'division', containerId: 'analytics-division-filter-container', valueId: 'analytics-division-filter-value', defaultLabel: 'All Divisions', parent: null },
+    { id: 'group', containerId: 'analytics-group-filter-container', valueId: 'analytics-group-filter-value', defaultLabel: 'All Groups', parent: 'division' },
+    { id: 'department', containerId: 'analytics-department-filter-container', valueId: 'analytics-department-filter-value', defaultLabel: 'All Departments', parent: 'group' },
+    { id: 'section', containerId: 'analytics-section-filter-container', valueId: 'analytics-section-filter-value', defaultLabel: 'All Sections', parent: 'department' }
+  ];
+  
+  const RESIGNATION_FILTERS_CONFIG = [
+    { id: 'division', containerId: 'resignation-division-filter-container', valueId: 'resignation-division-filter-value', defaultLabel: 'All Divisions', parent: null },
+    { id: 'group', containerId: 'resignation-group-filter-container', valueId: 'resignation-group-filter-value', defaultLabel: 'All Groups', parent: 'division' },
+    { id: 'department', containerId: 'resignation-department-filter-container', valueId: 'resignation-department-filter-value', defaultLabel: 'All Departments', parent: 'group' },
+    { id: 'section', containerId: 'resignation-section-filter-container', valueId: 'resignation-section-filter-value', defaultLabel: 'All Sections', parent: 'department' }
+  ];
+
   // --- INITIALIZATION ---
-  google.charts.load('current', { packages: ['orgchart'] });
+  google.charts.load('current', { packages: ['orgchart', 'corechart'] });
   google.charts.setOnLoadCallback(fetchData);
+
+  function switchTab(tabId) {
+    const activeClass = 'active';
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove(activeClass));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove(activeClass));
+
+    document.getElementById(`${tabId}-view`).classList.add(activeClass);
+    document.getElementById(`tab-${tabId}`).classList.add(activeClass);
+
+    if (tabId === 'demographics') {
+      if (!analyticsFiltersPopulated) {
+        populateAnalyticsFilters();
+      }
+      if (!analyticsDataLoaded) {
+        drawAnalyticsCharts();
+      }
+    } else if (tabId === 'resignation') {
+        if (!resignationFiltersPopulated) {
+            populateResignationFilters();
+        }
+        if (!resignationDataLoaded) {
+            drawResignationCharts();
+        }
+    }
+  }
+  
+  function populateAnalyticsFilters() {
+      let sourceData = fullEmployeeData;
+      
+      // Handle dependent location filters
+      ANALYTICS_FILTERS_CONFIG.forEach(config => {
+          const currentValue = document.getElementById(config.valueId).value;
+          const options = [config.defaultLabel, ...new Set(sourceData.map(e => e[config.id]).filter(String).sort())];
+          
+          createSearchableDropdown(config.containerId, options, null, null, (selection) => {
+              const newValue = (selection === config.defaultLabel) ? 'all' : selection;
+              if (document.getElementById(config.valueId).value !== newValue) {
+                  document.getElementById(config.valueId).value = newValue;
+                  
+                  // Reset children filters when a parent changes
+                  let childIdToReset = config.id;
+                  let childConfig = ANALYTICS_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                  while (childConfig) {
+                      document.getElementById(childConfig.valueId).value = 'all';
+                      childIdToReset = childConfig.id;
+                      childConfig = ANALYTICS_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                  }
+                  
+                  // Repopulate all filters and redraw charts
+                  populateAnalyticsFilters(); 
+                  drawAnalyticsCharts(true);
+              }
+          });
+          setSearchableDropdownValue(config.containerId, currentValue === 'all' ? config.defaultLabel : currentValue);
+
+          if (currentValue !== 'all') {
+              sourceData = sourceData.filter(emp => emp[config.id] === currentValue);
+          }
+      });
+
+      // Handle non-dependent filters
+      const lists = dropdownListData;
+      const refreshCallback = () => drawAnalyticsCharts(true);
+      createSearchableDropdown('analytics-joblevel-filter-container', ['All Job Levels', ...(lists.joblevel || [])], null, null, refreshCallback);
+      createSearchableDropdown('analytics-pos-status-filter-container', ['All Statuses', 'Active', 'Inactive'], null, null, refreshCallback);
+      createSearchableDropdown('analytics-gender-filter-container', ['All Genders', 'Male', 'Female'], null, null, refreshCallback);
+      createSearchableDropdown('analytics-jobtitle-filter-container', ['All Job Titles', ...(lists.jobtitle || [])], null, null, refreshCallback);
+      
+      if (!analyticsFiltersPopulated) {
+        document.getElementById('analytics-reset-filters-btn').addEventListener('click', resetAnalyticsFilters);
+        analyticsFiltersPopulated = true;
+      }
+  }
+  
+  function resetAnalyticsFilters() {
+      ANALYTICS_FILTERS_CONFIG.forEach(config => {
+          document.getElementById(config.valueId).value = 'all';
+      });
+      // Also reset non-dependent filters
+      const nonDependentFilters = [
+          { id: 'analytics-joblevel-filter-container', value: 'All Job Levels' },
+          { id: 'analytics-pos-status-filter-container', value: 'All Statuses' },
+          { id: 'analytics-gender-filter-container', value: 'All Genders' },
+          { id: 'analytics-jobtitle-filter-container', value: 'All Job Titles' }
+      ];
+      nonDependentFilters.forEach(f => {
+          const input = document.querySelector(`#${f.id} .searchable-dropdown-input`);
+          if (input) input.value = f.value;
+      });
+      
+      populateAnalyticsFilters();
+      drawAnalyticsCharts(true);
+  }
+
+  function drawAnalyticsCharts(forceRefresh = false) {
+    if (analyticsDataLoaded && !forceRefresh) return;
+    analyticsDataLoaded = true;
+    
+    // Show a loader in each chart div
+    document.getElementById('trends_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    document.getElementById('status_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    document.getElementById('contract_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    document.getElementById('gender_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    document.getElementById('job_group_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    document.getElementById('los_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    document.querySelector('#analytics-headcount-card p').textContent = '--';
+
+    const filters = {
+      division: document.getElementById('analytics-division-filter-value').value,
+      group: document.getElementById('analytics-group-filter-value').value,
+      department: document.getElementById('analytics-department-filter-value').value,
+      section: document.getElementById('analytics-section-filter-value').value,
+      jobLevel: document.querySelector('#analytics-joblevel-filter-container .searchable-dropdown-input').value,
+      positionStatus: document.querySelector('#analytics-pos-status-filter-container .searchable-dropdown-input').value,
+      gender: document.querySelector('#analytics-gender-filter-container .searchable-dropdown-input').value,
+      jobTitle: document.querySelector('#analytics-jobtitle-filter-container .searchable-dropdown-input').value,
+    };
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        // Update Headcount Card
+        document.querySelector('#analytics-headcount-card p').textContent = data.totalHeadcount;
+
+        // --- Helper function to create detailed pie chart labels ---
+        const createPieChartData = (counts) => {
+            const dataArray = [['Category', 'Count']];
+            const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+            if (total === 0) {
+                dataArray.push(['No Data', 1]);
+                return { data: google.visualization.arrayToDataTable(dataArray), isNoData: true, sortedKeys: [] };
+            }
+            const sortedKeys = Object.keys(counts).sort();
+            for (const key of sortedKeys) {
+                const value = counts[key];
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                const label = `${key}: ${value} (${percentage}%)`;
+                dataArray.push([label, value]);
+            }
+            return { data: google.visualization.arrayToDataTable(dataArray), isNoData: false, sortedKeys: sortedKeys };
+        };
+
+        // REVISED: Draw Status Chart (3D Column)
+        const statusDataArray = [['Status', 'Count', { role: 'annotation' }]];
+        if(Object.keys(data.statusCounts).length) {
+            Object.entries(data.statusCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => statusDataArray.push([key, value, value]));
+        } else {
+            statusDataArray.push(['No Data', 0, 0]);
+        }
+        const statusData = google.visualization.arrayToDataTable(statusDataArray);
+        const statusChart = new google.visualization.ColumnChart(document.getElementById('status_chart_div'));
+        statusChart.draw(statusData, {
+            is3D: true,
+            legend: { position: 'none' },
+            vAxis: { minValue: 0 },
+            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+            colors: ['#98FB98']
+        });
+
+        // REVISED: Draw Contract Type Chart (3D Column)
+        const contractDataArray = [['Contract Type', 'Count', { role: 'annotation' }]];
+        if(Object.keys(data.contractCounts).length) {
+            Object.entries(data.contractCounts).forEach(([key, value]) => contractDataArray.push([key, value, value]));
+        } else {
+            contractDataArray.push(['No Data', 0, 0]);
+        }
+        const contractData = google.visualization.arrayToDataTable(contractDataArray);
+        const contractChart = new google.visualization.ColumnChart(document.getElementById('contract_chart_div'));
+        contractChart.draw(contractData, { 
+            is3D: true,
+            legend: { position: 'none' },
+            vAxis: { minValue: 0 },
+            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+            colors: ['#008080']
+        });
+
+        // NEW: Draw Gender Chart (3D Pie)
+        const genderChartDataResult = createPieChartData(data.genderCounts);
+        const genderChart = new google.visualization.PieChart(document.getElementById('gender_chart_div'));
+        const genderSlices = {};
+        if (genderChartDataResult.isNoData) {
+            genderSlices[0] = { color: 'transparent', textStyle: { color: 'transparent' } };
+        } else {
+            const femaleIndex = genderChartDataResult.sortedKeys.indexOf('Female');
+            const maleIndex = genderChartDataResult.sortedKeys.indexOf('Male');
+            if (femaleIndex !== -1) genderSlices[femaleIndex] = { color: '#ef4444' }; // Red
+            if (maleIndex !== -1) genderSlices[maleIndex] = { color: '#3b82f6' };   // Blue
+        }
+        genderChart.draw(genderChartDataResult.data, { 
+            is3D: true,
+            legend: { 
+                position: 'labeled',
+                textStyle: { color: 'black', bold: true, italic: true }
+            },
+            pieSliceText: 'none',
+            tooltip: { text: 'value' },
+            chartArea: {'width': '100%', 'height': '90%'},
+            slices: genderSlices
+        });
+
+        // NEW: Draw Job Group Chart (3D Column)
+        const jobGroupDataArray = [['Job Group', 'Count', { role: 'annotation' }]];
+        if(Object.keys(data.jobGroupCounts).length) {
+            Object.entries(data.jobGroupCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => jobGroupDataArray.push([key, value, value]));
+        } else {
+            jobGroupDataArray.push(['No Data', 0, 0]);
+        }
+        const jobGroupData = google.visualization.arrayToDataTable(jobGroupDataArray);
+        const jobGroupChart = new google.visualization.ColumnChart(document.getElementById('job_group_chart_div'));
+        jobGroupChart.draw(jobGroupData, { 
+            is3D: true,
+            legend: { position: 'none' },
+            vAxis: { minValue: 0 },
+            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+            colors: ['#FFD1DC']
+        });
+        
+        // NEW: Draw Length of Service Chart (3D Column)
+        const losOrder = ['< 1 Year', '1-3 Years', '3-5 Years', '5-10 Years', '10+ Years'];
+        const losDataArray = [['Length of Service', 'Count', { role: 'annotation' }]];
+        losOrder.forEach(key => {
+            const value = data.losCounts[key] || 0;
+            losDataArray.push([key, value, value]);
+        });
+        const losData = google.visualization.arrayToDataTable(losDataArray);
+        const losChart = new google.visualization.ColumnChart(document.getElementById('los_chart_div'));
+        losChart.draw(losData, { 
+            is3D: true,
+            legend: { position: 'none' },
+            vAxis: { minValue: 0 },
+            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+            colors: ['#FFDB58']
+        });
+
+        // Draw Headcount Trend Chart (3D Column)
+        const trendData = new google.visualization.DataTable();
+        trendData.addColumn('string', 'Month');
+        trendData.addColumn('number', 'Filled');
+        trendData.addColumn('number', 'Vacant');
+        if (data.trendData.length > 0) {
+            data.trendData.forEach(d => {
+              trendData.addRow([d.month, d.filled, d.vacant]);
+            });
+        }
+        const trendChart = new google.visualization.ColumnChart(document.getElementById('trends_chart_div'));
+        trendChart.draw(trendData, {
+          is3D: true,
+          isStacked: true,
+          hAxis: { title: 'Month' },
+          vAxis: { title: 'Headcount', minValue: 0 }
+        });
+        
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('demographics-view').innerHTML = `<p class="text-red-500">Could not load analytics data. Error: ${err.message}</p>`;
+      })
+      .getAnalyticsData(filters);
+  }
+
+  function populateResignationFilters() {
+    let sourceData = fullEmployeeData;
+    
+    // Handle dependent location filters
+    RESIGNATION_FILTERS_CONFIG.forEach(config => {
+        const currentValue = document.getElementById(config.valueId).value;
+        const options = [config.defaultLabel, ...new Set(sourceData.map(e => e[config.id]).filter(String).sort())];
+        
+        createSearchableDropdown(config.containerId, options, null, null, (selection) => {
+            const newValue = (selection === config.defaultLabel) ? 'all' : selection;
+            if (document.getElementById(config.valueId).value !== newValue) {
+                document.getElementById(config.valueId).value = newValue;
+                
+                let childIdToReset = config.id;
+                let childConfig = RESIGNATION_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                while (childConfig) {
+                    document.getElementById(childConfig.valueId).value = 'all';
+                    childIdToReset = childConfig.id;
+                    childConfig = RESIGNATION_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                }
+                
+                populateResignationFilters(); 
+                drawResignationCharts(true);
+            }
+        });
+        setSearchableDropdownValue(config.containerId, currentValue === 'all' ? config.defaultLabel : currentValue);
+
+        if (currentValue !== 'all') {
+            sourceData = sourceData.filter(emp => emp[config.id] === currentValue);
+        }
+    });
+
+    // Handle non-dependent filters
+    const lists = dropdownListData;
+    const refreshCallback = () => drawResignationCharts(true);
+    createSearchableDropdown('resignation-joblevel-filter-container', ['All Job Levels', ...(lists.joblevel || [])], null, null, refreshCallback);
+    createSearchableDropdown('resignation-gender-filter-container', ['All Genders', 'Male', 'Female'], null, null, refreshCallback);
+    createSearchableDropdown('resignation-jobtitle-filter-container', ['All Job Titles', ...(lists.jobtitle || [])], null, null, refreshCallback);
+    
+    const currentYear = new Date().getFullYear();
+    const years = ['All Years', ...Array.from({length: 11}, (_, i) => (currentYear - i).toString())];
+    const months = ['All Months', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    createSearchableDropdown('resignation-year-filter-container', years, null, null, refreshCallback);
+    createSearchableDropdown('resignation-month-filter-container', months, null, null, refreshCallback);
+
+    if (!resignationFiltersPopulated) {
+      document.getElementById('resignation-reset-filters-btn').addEventListener('click', resetResignationFilters);
+      resignationFiltersPopulated = true;
+    }
+  }
+
+  function resetResignationFilters() {
+      RESIGNATION_FILTERS_CONFIG.forEach(config => {
+          document.getElementById(config.valueId).value = 'all';
+      });
+      
+      // Also reset non-dependent filters to their default "All..." state
+      document.querySelector('#resignation-joblevel-filter-container .searchable-dropdown-input').value = 'All Job Levels';
+      document.querySelector('#resignation-gender-filter-container .searchable-dropdown-input').value = 'All Genders';
+      document.querySelector('#resignation-jobtitle-filter-container .searchable-dropdown-input').value = 'All Job Titles';
+      document.querySelector('#resignation-year-filter-container .searchable-dropdown-input').value = 'All Years';
+      document.querySelector('#resignation-month-filter-container .searchable-dropdown-input').value = 'All Months';
+      
+      populateResignationFilters();
+      drawResignationCharts(true);
+  }
+
+  function drawResignationCharts(forceRefresh = false) {
+    if (resignationDataLoaded && !forceRefresh) return;
+    resignationDataLoaded = true; 
+    
+    // Show loaders in all chart divs
+    const chartDivs = ['monthly_turnover_chart_div', 'reason_chart_div', 'resignation_gender_chart_div', 'resignation_contract_chart_div', 'resignation_division_chart_div', 'resignation_job_group_chart_div', 'hires_leavers_chart_div', 'ytd_turnover_chart_div'];
+    chartDivs.forEach(id => {
+        document.getElementById(id).innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    });
+
+    const filters = {
+      division: document.getElementById('resignation-division-filter-value').value,
+      group: document.getElementById('resignation-group-filter-value').value,
+      department: document.getElementById('resignation-department-filter-value').value,
+      section: document.getElementById('resignation-section-filter-value').value,
+      jobLevel: document.querySelector('#resignation-joblevel-filter-container .searchable-dropdown-input').value,
+      gender: document.querySelector('#resignation-gender-filter-container .searchable-dropdown-input').value,
+      jobTitle: document.querySelector('#resignation-jobtitle-filter-container .searchable-dropdown-input').value,
+      year: document.querySelector('#resignation-year-filter-container .searchable-dropdown-input').value,
+      month: document.querySelector('#resignation-month-filter-container .searchable-dropdown-input').value,
+    };
+
+    google.script.run
+        .withSuccessHandler(function(data) {
+            
+            // Draw Reason for Leaving Chart (3D Horizontal Bar)
+            const reasonDataArray = [['Reason', 'Count', { role: 'annotation' }]];
+            if(Object.keys(data.reasonCounts).length) {
+                Object.entries(data.reasonCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => reasonDataArray.push([key, value, value]));
+            } else { reasonDataArray.push(['No Data', 0, 0]); }
+            const reasonData = google.visualization.arrayToDataTable(reasonDataArray);
+            const reasonChart = new google.visualization.BarChart(document.getElementById('reason_chart_div'));
+            reasonChart.draw(reasonData, { is3D: true, colors: ['#6B7280'], legend: { position: 'none' }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } } });
+
+            // Draw Resignation by Gender (3D Pie)
+            const genderDataArray = [['Gender', 'Count']];
+            if(Object.keys(data.resignationGenderCounts).length) {
+                Object.entries(data.resignationGenderCounts).forEach(([key, value]) => genderDataArray.push([key, value]));
+            } else { genderDataArray.push(['No Data', 0]); }
+            const genderData = google.visualization.arrayToDataTable(genderDataArray);
+            const genderChart = new google.visualization.PieChart(document.getElementById('resignation_gender_chart_div'));
+            genderChart.draw(genderData, { is3D: true, colors: ['#EF4444', '#3B82F6'], legend: { position: 'right', textStyle: { color: 'black', fontSize: 12 } } });
+
+            // Draw Resignation by Contract Type (3D Horizontal Bar)
+            const contractDataArray = [['Contract Type', 'Count', { role: 'annotation' }]];
+            if(Object.keys(data.resignationContractCounts).length) {
+                Object.entries(data.resignationContractCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => contractDataArray.push([key, value, value]));
+            } else { contractDataArray.push(['No Data', 0, 0]); }
+            const contractData = google.visualization.arrayToDataTable(contractDataArray);
+            const contractChart = new google.visualization.BarChart(document.getElementById('resignation_contract_chart_div'));
+            contractChart.draw(contractData, { is3D: true, colors: ['#10B981'], legend: { position: 'none' }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } } });
+            
+            // Draw Resignation by Division (3D Column)
+            const divisionDataArray = [['Division', 'Count', { role: 'annotation' }]];
+            if(Object.keys(data.resignationDivisionCounts).length) {
+                Object.entries(data.resignationDivisionCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => divisionDataArray.push([key, value, value]));
+            } else { divisionDataArray.push(['No Data', 0, 0]); }
+            const divisionData = google.visualization.arrayToDataTable(divisionDataArray);
+            const divisionChart = new google.visualization.ColumnChart(document.getElementById('resignation_division_chart_div'));
+            divisionChart.draw(divisionData, { is3D: true, colors: ['#8B5CF6'], legend: { position: 'none' }, vAxis: { minValue: 0 }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } } });
+
+            // Draw Resignation by Job Group (3D Pie)
+            const jobGroupDataArray = [['Job Group', 'Count']];
+            if(Object.keys(data.resignationJobGroupCounts).length) {
+                Object.entries(data.resignationJobGroupCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => jobGroupDataArray.push([key, value]));
+            } else { jobGroupDataArray.push(['No Data', 0]); }
+            const jobGroupData = google.visualization.arrayToDataTable(jobGroupDataArray);
+            const jobGroupChart = new google.visualization.PieChart(document.getElementById('resignation_job_group_chart_div'));
+            jobGroupChart.draw(jobGroupData, { is3D: true, colors: ['#F59E0B', '#14B8A6', '#EC4899', '#6366F1', '#84CC16'], legend: { position: 'right', textStyle: { color: 'black', fontSize: 12 } } });
+            
+            // Draw Monthly Turnover Rate (3D Combo Chart)
+            const turnoverData = new google.visualization.DataTable();
+            turnoverData.addColumn('string', 'Month');
+            turnoverData.addColumn('number', 'Separations');
+            turnoverData.addColumn({type: 'string', role: 'annotation'});
+            turnoverData.addColumn('number', 'Turnover Rate');
+            data.monthlyTurnover.forEach(d => {
+                turnoverData.addRow([d.month, d.separations, d.separations.toString(), d.rate]);
+            });
+            const turnoverChart = new google.visualization.ComboChart(document.getElementById('monthly_turnover_chart_div'));
+            turnoverChart.draw(turnoverData, {
+                is3D: true,
+                seriesType: 'bars',
+                series: {1: {type: 'line', color: '#EF4444', targetAxisIndex: 1}},
+                vAxes: { 0: {title: 'Number of Separations', minValue: 0}, 1: {title: 'Rate (%)', minValue: 0, format: '#.##'}},
+                legend: { position: 'top' },
+                colors: ['#3B82F6']
+            });
+
+            // Draw Yearly Hires and Leavers Chart (3D Pie)
+            const hiresLeaversData = google.visualization.arrayToDataTable([
+                ['Category', 'Count'],
+                ['Hires', data.yearlyHiresLeavers.hires || 0],
+                ['Leavers', data.yearlyHiresLeavers.leavers || 0]
+            ]);
+            const hiresLeaversChart = new google.visualization.PieChart(document.getElementById('hires_leavers_chart_div'));
+            hiresLeaversChart.draw(hiresLeaversData, { is3D: true, colors: ['#22C55E', '#F97316'] });
+
+            // Draw YTD Turnover Chart (3D Column)
+            const ytdTurnoverData = google.visualization.arrayToDataTable([
+                ['Year', 'YTD Turnover Rate (%)', { role: 'annotation' }],
+                [filters.year || new Date().getFullYear().toString(), data.ytdTurnover, data.ytdTurnover.toString() + '%']
+            ]);
+            const ytdTurnoverChart = new google.visualization.ColumnChart(document.getElementById('ytd_turnover_chart_div'));
+            ytdTurnoverChart.draw(ytdTurnoverData, { is3D: true, colors: ['#D946EF'], legend: { position: 'none' }, vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' } });
+
+        })
+        .withFailureHandler(function(err) {
+            document.getElementById('resignation-view').innerHTML = `<p class="text-red-500">Could not load resignation data. Error: ${err.message}</p>`;
+        })
+        .getResignationData(filters);
+  }
+
+  function generateMasterlist() {
+    showSavingOverlay();
+    const savingText = document.getElementById('saving-text');
+    savingText.textContent = 'Generating Masterlist...';
+
+    google.script.run
+      .withSuccessHandler(function(url) {
+        hideSavingOverlay();
+        if (url) {
+          window.open(url, '_blank');
+        } else {
+          alert('Could not generate masterlist. The backend returned an empty URL.');
+        }
+      })
+      .withFailureHandler(function(err) {
+        hideSavingOverlay();
+        alert('Failed to generate masterlist: ' + err.message);
+      })
+      .generateMasterlistSheet();
+  }
 
   function showLoader() { document.getElementById('loader-container').style.display = 'flex'; }
   function hideLoader() { document.getElementById('loader-container').style.display = 'none'; }
@@ -754,6 +1455,9 @@
                                 </button>
                                 <button title="Deactivate" onclick="event.stopPropagation(); deactivateEmployee('${emp.positionId}')" class="action-btn">
                                   <svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
+                                </button>
+                                <button title="Job Description" onclick="event.stopPropagation(); openJdModal('${emp.positionId}')" class="action-btn">
+                                  <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2V4a2 2 0 00-2-2H9z"></path><path d="M4 12a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"></path></svg>
                                 </button>
                               </div>`;
         }
@@ -1548,18 +2252,27 @@ function renderNotifications(data) {
 
       const showResignedDate = selUpper === 'RESIGNED';
       const showVacantDate = selUpper === 'VACANT' && document.getElementById('form-mode').value === 'edit';
+      
+      const reasonWrapper = document.getElementById('reasonforleaving-wrapper');
+      const reasonInput = document.getElementById('reasonforleaving');
 
       if (showResignedDate) {
         effectiveDateLabel.innerHTML = 'Effective Resignation Date <span class="text-red-500">*</span>';
         effectiveDateWrapper.style.display = 'block';
         effectiveDateInput.required = true;
+        reasonWrapper.style.display = 'block';
+        reasonInput.required = true;
       } else if (showVacantDate) {
         effectiveDateLabel.innerHTML = 'Effective Date Position Became Vacant <span class="text-red-500">*</span>';
         effectiveDateWrapper.style.display = 'block';
         effectiveDateInput.required = true;
+        reasonWrapper.style.display = 'none';
+        reasonInput.required = false;
       } else {
         effectiveDateWrapper.style.display = 'none';
         effectiveDateInput.required = false;
+        reasonWrapper.style.display = 'none';
+        reasonInput.required = false;
       }
 
       if (selUpper === 'VACANT') {
@@ -1578,6 +2291,7 @@ function renderNotifications(data) {
       startDateInput.required = showStartDateField;
     });
     createSearchableDropdown('gender-dropdown-container', ['Male', 'Female'], null, null, (sel) => { document.getElementById('gender').value = sel; });
+    createSearchableDropdown('reasonforleaving-dropdown-container', dropdownListData.reasonforleaving || [], null, null, (sel) => { document.getElementById('reasonforleaving').value = sel; });
     createSearchableDropdown('positionstatus-dropdown-container', ['Active', 'Inactive'], null, null, (sel) => { document.getElementById('positionstatus').value = sel; });
     
     createSearchableDropdown('reportingto-dropdown-container', dropdownListData.managers || [], 'name', 'id', handleManagerSelection);
@@ -1687,6 +2401,33 @@ function renderNotifications(data) {
     document.getElementById('history-modal').style.display = 'none';
   }
 
+  function openJdModal(positionId) {
+    const modal = document.getElementById('jd-modal');
+    const title = document.getElementById('jd-modal-title');
+    const content = document.getElementById('jd-content');
+    
+    title.textContent = `Job Description for ${positionId}`;
+    content.innerHTML = '<p>Loading...</p>';
+    modal.style.display = 'flex';
+    
+    google.script.run
+      .withSuccessHandler(function(jd) {
+        if (jd) {
+          content.innerHTML = jd;
+        } else {
+          content.innerHTML = '<p class="text-gray-500">No job description found for this position.</p>';
+        }
+      })
+      .withFailureHandler(function(err) {
+        content.innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
+      })
+      .getJobDescription(positionId);
+  }
+
+  function closeJdModal() {
+    document.getElementById('jd-modal').style.display = 'none';
+  }
+
   function showSavingOverlay() {
     document.getElementById('loader').style.display = 'block';
     document.getElementById('saving-text').textContent = 'Saving...';
@@ -1721,7 +2462,8 @@ function renderNotifications(data) {
       gender: document.getElementById('gender').value,
       positionstatus: document.getElementById('positionstatus').value,
       datehired: document.getElementById('datehired').value,
-      startdateinposition: document.getElementById('startdateinposition').value
+      startdateinposition: document.getElementById('startdateinposition').value,
+      reasonforleaving: document.getElementById('reasonforleaving').value
     };
     const originalStatus = document.getElementById('original-status').value;
 
@@ -1760,6 +2502,11 @@ function renderNotifications(data) {
     if ((data.status.toUpperCase() === 'VACANT' || data.status.toUpperCase() === 'RESIGNED') && mode === 'edit' && !data.effectivedate) {
       alert('Please provide the Effective Date for this status change.');
       return;
+    }
+    
+    if (data.status.toUpperCase() === 'RESIGNED' && !data.reasonforleaving) {
+        alert('Please select a "Reason for Leaving" before saving.');
+        return;
     }
     
     if (data.contracttype && data.contracttype.toUpperCase() === 'JPRO' && !data.contractenddate) {
@@ -1974,4 +2721,3 @@ function createSearchableDropdown(containerId, items, displayKey, valueKey, onSe
 </script>
 </body>
 </html>
-
