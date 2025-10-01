@@ -705,12 +705,18 @@
                 <div id="resignation-month-filter-container" class="searchable-dropdown mt-1"></div>
             </div>
         </div>
-        <div class="flex justify-end items-start gap-4">
-            <button id="resignation-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
-            <button onclick="drawResignationCharts(true)" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center">
-                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
-                Refresh Data
-            </button>
+        <div class="flex justify-between items-start gap-4">
+            <div id="resignation-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow w-1/3">
+                <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
+                <p class="text-3xl font-bold">--</p>
+            </div>
+            <div class="flex space-x-2">
+                <button id="resignation-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
+                <button onclick="drawResignationCharts(true)" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center">
+                    <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
+                    Refresh Data
+                </button>
+            </div>
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -916,7 +922,29 @@
     google.script.run
       .withSuccessHandler(function(data) {
         // Update Headcount Card
-        document.querySelector('#analytics-headcount-card p').textContent = data.totalHeadcount;
+        const headcountCard = document.querySelector('#analytics-headcount-card');
+        const headcountTitle = headcountCard.querySelector('h3');
+        const headcountValue = headcountCard.querySelector('p');
+
+        const divisionFilter = document.getElementById('analytics-division-filter-value').value;
+        const groupFilter = document.getElementById('analytics-group-filter-value').value;
+        const departmentFilter = document.getElementById('analytics-department-filter-value').value;
+        const sectionFilter = document.getElementById('analytics-section-filter-value').value;
+        const jobLevelFilter = document.querySelector('#analytics-joblevel-filter-container .searchable-dropdown-input').value;
+        const posStatusFilter = document.querySelector('#analytics-pos-status-filter-container .searchable-dropdown-input').value;
+        const genderFilter = document.querySelector('#analytics-gender-filter-container .searchable-dropdown-input').value;
+        const jobTitleFilter = document.querySelector('#analytics-jobtitle-filter-container .searchable-dropdown-input').value;
+
+        const allFiltersDefault = divisionFilter === 'all' && groupFilter === 'all' && departmentFilter === 'all' && sectionFilter === 'all' &&
+                                  jobLevelFilter.startsWith('All') && posStatusFilter.startsWith('All') && genderFilter.startsWith('All') && jobTitleFilter.startsWith('All');
+
+        if (allFiltersDefault) {
+          headcountTitle.textContent = 'Total Headcount';
+          headcountValue.textContent = data.overallHeadcount;
+        } else {
+          headcountTitle.textContent = 'Filtered Headcount';
+          headcountValue.textContent = data.totalHeadcount;
+        }
 
         // --- Helper function to create detailed pie chart labels ---
         const createPieChartData = (counts) => {
@@ -1144,7 +1172,21 @@
 
     google.script.run
         .withSuccessHandler(function(data) {
-            
+            // Update Headcount Card
+            const headcountCard = document.getElementById('resignation-headcount-card');
+            const headcountTitle = headcountCard.querySelector('h3');
+            const headcountValue = headcountCard.querySelector('p');
+
+            const allFiltersDefault = Object.values(filters).every(val => val.startsWith('All'));
+
+            if (allFiltersDefault) {
+                headcountTitle.textContent = 'Total Headcount';
+                headcountValue.textContent = data.overallHeadcount;
+            } else {
+                headcountTitle.textContent = 'Filtered Resignations';
+                headcountValue.textContent = data.filteredResignationsCount;
+            }
+
             // Draw Reason for Leaving Chart (3D Horizontal Bar)
             const reasonDataArray = [['Reason', 'Count', { role: 'annotation' }]];
             if(Object.keys(data.reasonCounts).length) {

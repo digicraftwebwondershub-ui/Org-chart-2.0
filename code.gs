@@ -1919,15 +1919,19 @@ function getResignationData(filters) {
   const mainSheet = ss.getSheets()[0];
   const resignationSheet = ss.getSheetByName('Resignation Data');
 
-  const emptyResult = { reasonCounts: {}, resignationGenderCounts: {}, resignationContractCounts: {}, resignationDivisionCounts: {}, resignationJobGroupCounts: {}, monthlyTurnover: [], yearlyHiresLeavers: { hires: 0, leavers: 0 }, ytdTurnover: 0 };
+  const emptyResult = { reasonCounts: {}, resignationGenderCounts: {}, resignationContractCounts: {}, resignationDivisionCounts: {}, resignationJobGroupCounts: {}, monthlyTurnover: [], yearlyHiresLeavers: { hires: 0, leavers: 0 }, ytdTurnover: 0, overallHeadcount: 0, filteredResignationsCount: 0 };
 
   if (!mainSheet || mainSheet.getLastRow() < 2) return emptyResult;
 
   const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
   const mainHeaders = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
   const dateHiredIndex = mainHeaders.indexOf('Date Hired');
+  const empIdIndex = mainHeaders.indexOf('Employee ID');
+  const overallHeadcount = mainData.filter(row => row[empIdIndex]).length;
 
-  if (!resignationSheet || resignationSheet.getLastRow() < 2) return emptyResult;
+  if (!resignationSheet || resignationSheet.getLastRow() < 2) {
+    return { ...emptyResult, overallHeadcount };
+  }
 
   const resignationData = resignationSheet.getRange(2, 1, resignationSheet.getLastRow() - 1, resignationSheet.getLastColumn()).getValues();
   const resignationHeaders = resignationSheet.getRange(1, 1, 1, resignationSheet.getLastColumn()).getValues()[0];
@@ -1938,19 +1942,19 @@ function getResignationData(filters) {
 
   const filteredResignations = resignationData.filter(row => {
     const resDate = new Date(row[resHeaderMap.get('Resignation Date')]);
-    if (filters.year && filters.year !== 'All Years' && resDate.getFullYear() != filters.year) return false;
-    if (filters.month && filters.month !== 'All Months') {
+    if (filters.year && !String(filters.year).toLowerCase().startsWith('all') && resDate.getFullYear() != filters.year) return false;
+    if (filters.month && !String(filters.month).toLowerCase().startsWith('all')) {
         const monthIndex = new Date(Date.parse(filters.month +" 1, 2012")).getMonth();
         if (resDate.getMonth() != monthIndex) return false;
     }
     // Apply other filters
-    if (filters.division && filters.division !== 'All Divisions' && row[resHeaderMap.get('Division')] !== filters.division) return false;
-    if (filters.group && filters.group !== 'All Groups' && row[resHeaderMap.get('Group')] !== filters.group) return false;
-    if (filters.department && filters.department !== 'All Departments' && row[resHeaderMap.get('Department')] !== filters.department) return false;
-    if (filters.section && filters.section !== 'All Sections' && row[resHeaderMap.get('Section')] !== filters.section) return false;
-    if (filters.jobLevel && filters.jobLevel !== 'All Job Levels' && row[resHeaderMap.get('Job Level')] !== filters.jobLevel) return false;
-    if (filters.gender && filters.gender !== 'All Genders' && row[resHeaderMap.get('Gender')] !== filters.gender) return false;
-    if (filters.jobTitle && filters.jobTitle !== 'All Job Titles' && row[resHeaderMap.get('Job Title')] !== filters.jobTitle) return false;
+    if (filters.division && !String(filters.division).toLowerCase().startsWith('all') && row[resHeaderMap.get('Division')] !== filters.division) return false;
+    if (filters.group && !String(filters.group).toLowerCase().startsWith('all') && row[resHeaderMap.get('Group')] !== filters.group) return false;
+    if (filters.department && !String(filters.department).toLowerCase().startsWith('all') && row[resHeaderMap.get('Department')] !== filters.department) return false;
+    if (filters.section && !String(filters.section).toLowerCase().startsWith('all') && row[resHeaderMap.get('Section')] !== filters.section) return false;
+    if (filters.jobLevel && !String(filters.jobLevel).toLowerCase().startsWith('all') && row[resHeaderMap.get('Job Level')] !== filters.jobLevel) return false;
+    if (filters.gender && !String(filters.gender).toLowerCase().startsWith('all') && row[resHeaderMap.get('Gender')] !== filters.gender) return false;
+    if (filters.jobTitle && !String(filters.jobTitle).toLowerCase().startsWith('all') && row[resHeaderMap.get('Job Title')] !== filters.jobTitle) return false;
     return true;
   });
 
@@ -1990,7 +1994,9 @@ function getResignationData(filters) {
     resignationJobGroupCounts,
     monthlyTurnover,
     yearlyHiresLeavers: { hires: hiresThisYear.length, leavers: leaversThisYear.length },
-    ytdTurnover: parseFloat(ytdTurnover.toFixed(2))
+    ytdTurnover: parseFloat(ytdTurnover.toFixed(2)),
+    overallHeadcount,
+    filteredResignationsCount: filteredResignations.length
   };
 }
 
@@ -1999,25 +2005,27 @@ function getAnalyticsData(filters) {
   const mainSheet = spreadsheet.getSheets()[0];
   const previousSheet = spreadsheet.getSheetByName('Previous Headcount');
 
-  // --- FIX: Initialize headers and data variables safely ---
   let headers = [];
+  let mainData = [];
+  if (mainSheet.getLastRow() >= 1) {
+    headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+    if (mainSheet.getLastRow() > 1) {
+      mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+    }
+  } else {
+    return { statusCounts: {}, contractCounts: {}, trendData: [], totalHeadcount: 0, overallHeadcount: 0 };
+  }
+
+  const empIdIndex = headers.indexOf('Employee ID');
+  const overallHeadcount = mainData.filter(row => row[empIdIndex]).length;
+
   let filteredData = [];
   const statusCounts = {};
   const contractCounts = {};
   let totalHeadcount = 0;
 
-  if (mainSheet.getLastRow() >= 1) {
-    headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
-  } else {
-    // If there are no rows at all (not even a header), return empty data.
-    return { statusCounts, contractCounts, trendData: [], totalHeadcount };
-  }
-  // --- END FIX ---
-
   // 1. Filter main data based on user's selections
-  if (mainSheet.getLastRow() > 1) { // Only process data if there are rows beyond the header
-    const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
-    
+  if (mainData.length > 0) {
     const headerMap = {
       division: headers.indexOf('Division'),
       group: headers.indexOf('Group'),
@@ -2033,7 +2041,7 @@ function getAnalyticsData(filters) {
 
     filteredData = mainData.filter(row => {
       return Object.keys(filters).every(key => {
-        if (!filters[key] || filters[key].startsWith('All')) return true;
+        if (!filters[key] || String(filters[key]).toLowerCase().startsWith('all')) return true;
         const colIndex = headerMap[key];
         return colIndex !== -1 && (row[colIndex] || '').toString().trim() === filters[key];
       });
@@ -2054,7 +2062,6 @@ function getAnalyticsData(filters) {
 
   const statusIndex = headers.indexOf('Status');
   const contractIndex = headers.indexOf('Contract Type');
-  const empIdIndex = headers.indexOf('Employee ID');
   const genderIndex = headers.indexOf('Gender');
   const levelIndex = headers.indexOf('Level');
   const hiredIndex = headers.indexOf('Date Hired');
@@ -2147,7 +2154,8 @@ function getAnalyticsData(filters) {
     jobGroupCounts: jobGroupCounts,
     losCounts: losCounts,
     trendData: trendData,
-    totalHeadcount: totalHeadcount
+    totalHeadcount: totalHeadcount,
+    overallHeadcount: overallHeadcount
   };
 }
 
