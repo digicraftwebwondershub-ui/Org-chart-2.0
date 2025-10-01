@@ -1942,19 +1942,19 @@ function getResignationData(filters) {
 
   const filteredResignations = resignationData.filter(row => {
     const resDate = new Date(row[resHeaderMap.get('Resignation Date')]);
-    if (filters.year && !String(filters.year).toLowerCase().startsWith('all') && resDate.getFullYear() != filters.year) return false;
-    if (filters.month && !String(filters.month).toLowerCase().startsWith('all')) {
+    if (filters.year && filters.year !== 'All Years' && resDate.getFullYear() != filters.year) return false;
+    if (filters.month && filters.month !== 'All Months') {
         const monthIndex = new Date(Date.parse(filters.month +" 1, 2012")).getMonth();
         if (resDate.getMonth() != monthIndex) return false;
     }
     // Apply other filters
-    if (filters.division && !String(filters.division).toLowerCase().startsWith('all') && row[resHeaderMap.get('Division')] !== filters.division) return false;
-    if (filters.group && !String(filters.group).toLowerCase().startsWith('all') && row[resHeaderMap.get('Group')] !== filters.group) return false;
-    if (filters.department && !String(filters.department).toLowerCase().startsWith('all') && row[resHeaderMap.get('Department')] !== filters.department) return false;
-    if (filters.section && !String(filters.section).toLowerCase().startsWith('all') && row[resHeaderMap.get('Section')] !== filters.section) return false;
-    if (filters.jobLevel && !String(filters.jobLevel).toLowerCase().startsWith('all') && row[resHeaderMap.get('Job Level')] !== filters.jobLevel) return false;
-    if (filters.gender && !String(filters.gender).toLowerCase().startsWith('all') && row[resHeaderMap.get('Gender')] !== filters.gender) return false;
-    if (filters.jobTitle && !String(filters.jobTitle).toLowerCase().startsWith('all') && row[resHeaderMap.get('Job Title')] !== filters.jobTitle) return false;
+    if (filters.division && filters.division !== 'All Divisions' && row[resHeaderMap.get('Division')] !== filters.division) return false;
+    if (filters.group && filters.group !== 'All Groups' && row[resHeaderMap.get('Group')] !== filters.group) return false;
+    if (filters.department && filters.department !== 'All Departments' && row[resHeaderMap.get('Department')] !== filters.department) return false;
+    if (filters.section && filters.section !== 'All Sections' && row[resHeaderMap.get('Section')] !== filters.section) return false;
+    if (filters.jobLevel && filters.jobLevel !== 'All Job Levels' && row[resHeaderMap.get('Job Level')] !== filters.jobLevel) return false;
+    if (filters.gender && filters.gender !== 'All Genders' && row[resHeaderMap.get('Gender')] !== filters.gender) return false;
+    if (filters.jobTitle && filters.jobTitle !== 'All Job Titles' && row[resHeaderMap.get('Job Title')] !== filters.jobTitle) return false;
     return true;
   });
 
@@ -2041,7 +2041,7 @@ function getAnalyticsData(filters) {
 
     filteredData = mainData.filter(row => {
       return Object.keys(filters).every(key => {
-        if (!filters[key] || String(filters[key]).toLowerCase().startsWith('all')) return true;
+        if (!filters[key] || filters[key].startsWith('All')) return true;
         const colIndex = headerMap[key];
         return colIndex !== -1 && (row[colIndex] || '').toString().trim() === filters[key];
       });
@@ -2062,6 +2062,7 @@ function getAnalyticsData(filters) {
 
   const statusIndex = headers.indexOf('Status');
   const contractIndex = headers.indexOf('Contract Type');
+  const empIdIndex = headers.indexOf('Employee ID');
   const genderIndex = headers.indexOf('Gender');
   const levelIndex = headers.indexOf('Level');
   const hiredIndex = headers.indexOf('Date Hired');
