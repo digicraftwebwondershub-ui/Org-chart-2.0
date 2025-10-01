@@ -21,6 +21,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Update Headcount Summary & Create Approval Records', 'takeHeadcountSnapshotWithAlert')
     .addItem('Generate Incumbency History Report', 'generateIncumbencyReport')
+    .addItem('Generate Masterlist Export', 'generateMasterlistSheetWithPrompt')
     .addSeparator()
     .addItem('Debug Incumbency History', 'debugIncumbencyForPosition')
     .addItem('Clear Script Cache', 'clearScriptCache')
@@ -1047,6 +1048,8 @@ function getListsForDropdowns() {
     const headers = refData.shift();
     headers.forEach((header, colIndex) => {
       if (header) {
+        // Standardize the key: lowercase, remove spaces and special chars.
+        // This handles "Reason for Leaving" -> "reasonforleaving"
         const key = header.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/gi, '');
         const values = refData.map(row => row[colIndex]).filter(String).sort();
         staticLists[key] = values;
@@ -1249,6 +1252,41 @@ function saveEmployeeData(dataObject, mode) {
         }
       }
       rangeToUpdate.setValues([existingRowData]);
+
+      // --- NEW: Resignation Data Logging ---
+      if (dataObject.status === 'RESIGNED') {
+        let resignationSheet = ss.getSheetByName('Resignation Data');
+        if (!resignationSheet) {
+          resignationSheet = ss.insertSheet('Resignation Data');
+          const resignationHeaders = [
+            'Timestamp', 'Position ID', 'Employee ID', 'Employee Name',
+            'Division', 'Group', 'Department', 'Section', 'Job Title',
+            'Level', 'Job Level', 'Gender', 'Contract Type', 'Date Hired', 'Resignation Date', 'Reason for Leaving'
+          ];
+          resignationSheet.appendRow(resignationHeaders);
+          resignationSheet.setFrozenRows(1);
+        }
+
+        const resignedEmployeeData = [
+          new Date(),
+          dataObject.positionid,
+          dataObject.employeeid,
+          dataObject.employeename,
+          dataObject.division,
+          dataObject.group,
+          dataObject.department,
+          dataObject.section,
+          dataObject.jobtitle,
+          dataObject.level,
+          dataObject.joblevel,
+          dataObject.gender,
+          dataObject.contracttype,
+          dataObject.datehired,
+          dataObject.effectivedate,
+          dataObject.reasonforleaving || ''
+        ];
+        resignationSheet.appendRow(resignedEmployeeData);
+      }
     }
 
     // --- STEP 1: Log only the primary changes ---
@@ -1841,4 +1879,351 @@ function _parseDate(dateInput) {
   if (!isNaN(date)) return date;
   
   return null; // Return null if input is not a valid date
+}
+
+function getJobDescription(positionId) {
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const jdSheetName = 'Job Descriptions';
+    let jdSheet = spreadsheet.getSheetByName(jdSheetName);
+
+    if (!jdSheet) {
+      jdSheet = spreadsheet.insertSheet(jdSheetName);
+      jdSheet.appendRow(['Position ID', 'Description']);
+      jdSheet.setFrozenRows(1);
+      return null;
+    }
+
+    if (jdSheet.getLastRow() < 2) {
+      return null;
+    }
+
+    const data = jdSheet.getRange(2, 1, jdSheet.getLastRow() - 1, 2).getValues();
+    
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0] && data[i][0].toString().trim() === positionId.toString().trim()) {
+        return data[i][1] || 'No description provided.';
+      }
+    }
+    
+    return null;
+
+  } catch (e) {
+    Logger.log(`Error in getJobDescription: ${e.toString()}`);
+    throw new Error(`Could not retrieve job description. Error: ${e.message}`);
+  }
+}
+
+function getResignationData(filters) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const mainSheet = ss.getSheets()[0];
+  const resignationSheet = ss.getSheetByName('Resignation Data');
+
+  const emptyResult = { reasonCounts: {}, resignationGenderCounts: {}, resignationContractCounts: {}, resignationDivisionCounts: {}, resignationJobGroupCounts: {}, monthlyTurnover: [], yearlyHiresLeavers: { hires: 0, leavers: 0 }, ytdTurnover: 0 };
+
+  if (!mainSheet || mainSheet.getLastRow() < 2) return emptyResult;
+
+  const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+  const mainHeaders = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+  const dateHiredIndex = mainHeaders.indexOf('Date Hired');
+
+  if (!resignationSheet || resignationSheet.getLastRow() < 2) return emptyResult;
+
+  const resignationData = resignationSheet.getRange(2, 1, resignationSheet.getLastRow() - 1, resignationSheet.getLastColumn()).getValues();
+  const resignationHeaders = resignationSheet.getRange(1, 1, 1, resignationSheet.getLastColumn()).getValues()[0];
+  const resHeaderMap = new Map(resignationHeaders.map((h, i) => [h.trim(), i]));
+
+  const jobGroupMapping = { 1: 'Executives', 2: 'Director', 3: 'Managerial', 4: 'Supervisory', 5: 'Rank & File', 6: 'Jobcon' };
+  const selectedYear = (filters.year && filters.year !== 'All Years') ? parseInt(filters.year) : new Date().getFullYear();
+
+  const filteredResignations = resignationData.filter(row => {
+    const resDate = new Date(row[resHeaderMap.get('Resignation Date')]);
+    if (filters.year && filters.year !== 'All Years' && resDate.getFullYear() != filters.year) return false;
+    if (filters.month && filters.month !== 'All Months') {
+        const monthIndex = new Date(Date.parse(filters.month +" 1, 2012")).getMonth();
+        if (resDate.getMonth() != monthIndex) return false;
+    }
+    // Apply other filters
+    if (filters.division && filters.division !== 'All Divisions' && row[resHeaderMap.get('Division')] !== filters.division) return false;
+    if (filters.group && filters.group !== 'All Groups' && row[resHeaderMap.get('Group')] !== filters.group) return false;
+    if (filters.department && filters.department !== 'All Departments' && row[resHeaderMap.get('Department')] !== filters.department) return false;
+    if (filters.section && filters.section !== 'All Sections' && row[resHeaderMap.get('Section')] !== filters.section) return false;
+    if (filters.jobLevel && filters.jobLevel !== 'All Job Levels' && row[resHeaderMap.get('Job Level')] !== filters.jobLevel) return false;
+    if (filters.gender && filters.gender !== 'All Genders' && row[resHeaderMap.get('Gender')] !== filters.gender) return false;
+    if (filters.jobTitle && filters.jobTitle !== 'All Job Titles' && row[resHeaderMap.get('Job Title')] !== filters.jobTitle) return false;
+    return true;
+  });
+
+  const reasonCounts = {}, resignationGenderCounts = {}, resignationContractCounts = {}, resignationDivisionCounts = {}, resignationJobGroupCounts = {};
+  filteredResignations.forEach(row => {
+    reasonCounts[row[resHeaderMap.get('Reason for Leaving')] || 'Unknown'] = (reasonCounts[row[resHeaderMap.get('Reason for Leaving')] || 'Unknown'] || 0) + 1;
+    resignationGenderCounts[row[resHeaderMap.get('Gender')] || 'Unknown'] = (resignationGenderCounts[row[resHeaderMap.get('Gender')] || 'Unknown'] || 0) + 1;
+    resignationContractCounts[row[resHeaderMap.get('Contract Type')] || 'Unknown'] = (resignationContractCounts[row[resHeaderMap.get('Contract Type')] || 'Unknown'] || 0) + 1;
+    resignationDivisionCounts[row[resHeaderMap.get('Division')] || 'Unknown'] = (resignationDivisionCounts[row[resHeaderMap.get('Division')] || 'Unknown'] || 0) + 1;
+    resignationJobGroupCounts[jobGroupMapping[row[resHeaderMap.get('Level')]] || 'Unknown'] = (resignationJobGroupCounts[jobGroupMapping[row[resHeaderMap.get('Level')]] || 'Unknown'] || 0) + 1;
+  });
+
+  const leaversThisYear = resignationData.filter(r => new Date(r[resHeaderMap.get('Resignation Date')]).getFullYear() === selectedYear);
+  const hiresThisYear = mainData.filter(r => r[dateHiredIndex] && new Date(r[dateHiredIndex]).getFullYear() === selectedYear);
+
+  const endOfYearHeadcount = mainData.length;
+  const startOfYearHeadcount = endOfYearHeadcount - hiresThisYear.length + leaversThisYear.length;
+  const averageHeadcount = (startOfYearHeadcount + endOfYearHeadcount) / 2;
+
+  const ytdTurnover = averageHeadcount > 0 ? (leaversThisYear.length / averageHeadcount) * 100 : 0;
+
+  const monthlyTurnover = Array(12).fill(null).map((_, month) => {
+    const monthlySeparations = leaversThisYear.filter(r => new Date(r[resHeaderMap.get('Resignation Date')]).getMonth() === month).length;
+    const monthlyRate = averageHeadcount > 0 ? (monthlySeparations / averageHeadcount) * 100 : 0;
+    return {
+      month: new Date(selectedYear, month, 1).toLocaleString('default', { month: 'short' }),
+      separations: monthlySeparations,
+      rate: parseFloat(monthlyRate.toFixed(2))
+    };
+  });
+
+  return {
+    reasonCounts,
+    resignationGenderCounts,
+    resignationContractCounts,
+    resignationDivisionCounts,
+    resignationJobGroupCounts,
+    monthlyTurnover,
+    yearlyHiresLeavers: { hires: hiresThisYear.length, leavers: leaversThisYear.length },
+    ytdTurnover: parseFloat(ytdTurnover.toFixed(2))
+  };
+}
+
+function getAnalyticsData(filters) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const mainSheet = spreadsheet.getSheets()[0];
+  const previousSheet = spreadsheet.getSheetByName('Previous Headcount');
+
+  // --- FIX: Initialize headers and data variables safely ---
+  let headers = [];
+  let filteredData = [];
+  const statusCounts = {};
+  const contractCounts = {};
+  let totalHeadcount = 0;
+
+  if (mainSheet.getLastRow() >= 1) {
+    headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+  } else {
+    // If there are no rows at all (not even a header), return empty data.
+    return { statusCounts, contractCounts, trendData: [], totalHeadcount };
+  }
+  // --- END FIX ---
+
+  // 1. Filter main data based on user's selections
+  if (mainSheet.getLastRow() > 1) { // Only process data if there are rows beyond the header
+    const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+    
+    const headerMap = {
+      division: headers.indexOf('Division'),
+      group: headers.indexOf('Group'),
+      department: headers.indexOf('Department'),
+      section: headers.indexOf('Section'),
+      jobLevel: headers.indexOf('Job Level'),
+      positionStatus: headers.indexOf('Position Status'),
+      gender: headers.indexOf('Gender'),
+      jobTitle: headers.indexOf('Job Title'),
+      status: headers.indexOf('Status'),
+      contractType: headers.indexOf('Contract Type')
+    };
+
+    filteredData = mainData.filter(row => {
+      return Object.keys(filters).every(key => {
+        if (!filters[key] || filters[key].startsWith('All')) return true;
+        const colIndex = headerMap[key];
+        return colIndex !== -1 && (row[colIndex] || '').toString().trim() === filters[key];
+      });
+    });
+  }
+
+  // 2. Calculate all analytics metrics from filtered data
+  const genderCounts = {};
+  const jobGroupCounts = {};
+  const losCounts = {
+    '< 1 Year': 0, '1-3 Years': 0, '3-5 Years': 0, '5-10 Years': 0, '10+ Years': 0
+  };
+  
+  const jobGroupMapping = {
+    1: 'Executives', 2: 'Director', 3: 'Managerial',
+    4: 'Supervisory', 5: 'Rank & File', 6: 'Jobcon'
+  };
+
+  const statusIndex = headers.indexOf('Status');
+  const contractIndex = headers.indexOf('Contract Type');
+  const empIdIndex = headers.indexOf('Employee ID');
+  const genderIndex = headers.indexOf('Gender');
+  const levelIndex = headers.indexOf('Level');
+  const hiredIndex = headers.indexOf('Date Hired');
+  const today = new Date();
+
+  filteredData.forEach(row => {
+    // Only count as "headcount" if the position is filled
+    if (row[empIdIndex]) {
+      totalHeadcount++;
+      
+      const status = (row[statusIndex] || 'Unknown').toString().trim();
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+      const contract = (row[contractIndex] || 'Unknown').toString().trim();
+      contractCounts[contract] = (contractCounts[contract] || 0) + 1;
+      
+      const gender = (row[genderIndex] || 'Unknown').toString().trim();
+      genderCounts[gender] = (genderCounts[gender] || 0) + 1;
+      
+      const level = row[levelIndex];
+      const jobGroup = jobGroupMapping[level] || 'Unknown';
+      jobGroupCounts[jobGroup] = (jobGroupCounts[jobGroup] || 0) + 1;
+
+      const hiredDate = row[hiredIndex] ? new Date(row[hiredIndex]) : null;
+      if (hiredDate && !isNaN(hiredDate)) {
+        const years = (today - hiredDate) / (1000 * 60 * 60 * 24 * 365.25);
+        if (years < 1) losCounts['< 1 Year']++;
+        else if (years < 3) losCounts['1-3 Years']++;
+        else if (years < 5) losCounts['3-5 Years']++;
+        else if (years < 10) losCounts['5-10 Years']++;
+        else losCounts['10+ Years']++;
+      }
+    }
+  });
+
+
+  // 3. Headcount Trend Data
+  // This section reads the 'Previous Headcount' sheet to build a historical trend.
+  // It expects a specific format generated by the 'takeHeadcountSnapshot' function:
+  // - Columns are added dynamically for each snapshot, e.g., "Jan 2023 Filled", "Jan 2023 Vacant".
+  // - It identifies these columns by looking for the " Filled" suffix.
+  // - To avoid double-counting, it only aggregates rows that represent a division total.
+  //   These are identified as rows where the 'Group', 'Department', and 'Section' columns (2, 3, 4) are blank.
+  const trendData = [];
+  if (previousSheet && previousSheet.getLastRow() > 1) {
+    const prevData = previousSheet.getDataRange().getValues();
+    const prevHeaders = prevData.shift();
+    const divIdx = 0, grpIdx = 1, dptIdx = 2, secIdx = 3;
+
+    for (let i = 0; i < prevHeaders.length; i++) {
+      const header = prevHeaders[i];
+      if (header.includes(' Filled')) {
+        const month = header.replace(' Filled', '').trim();
+        const vacantHeader = `${month} Vacant`;
+        const vacantIndex = prevHeaders.indexOf(vacantHeader);
+        
+        if (vacantIndex !== -1) {
+          let totalFilled = 0;
+          let totalVacant = 0;
+          
+          const filteredPrevData = prevData.filter(row => {
+            const rowDiv = row[divIdx];
+            const rowGrp = row[grpIdx];
+            const rowDpt = row[dptIdx];
+            const rowSec = row[secIdx];
+            
+            if (filters.section && filters.section !== 'All Sections') return rowSec === filters.section;
+            if (filters.department && filters.department !== 'All Departments') return rowDpt === filters.department && !rowSec;
+            if (filters.group && filters.group !== 'All Groups') return rowGrp === filters.group && !rowDpt && !rowSec;
+            if (filters.division && filters.division !== 'All Divisions') return rowDiv === filters.division && !rowGrp && !rowDpt && !rowSec;
+            // If no location filters, only use the grand total rows (division level)
+            return !rowGrp && !rowDpt && !rowSec;
+          });
+
+          filteredPrevData.forEach(row => {
+            totalFilled += parseInt(row[i] || 0);
+            totalVacant += parseInt(row[vacantIndex] || 0);
+          });
+          
+          trendData.push({ month: month, filled: totalFilled, vacant: totalVacant });
+        }
+      }
+    }
+  }
+
+  return {
+    statusCounts: statusCounts,
+    contractCounts: contractCounts,
+    genderCounts: genderCounts,
+    jobGroupCounts: jobGroupCounts,
+    losCounts: losCounts,
+    trendData: trendData,
+    totalHeadcount: totalHeadcount
+  };
+}
+
+function generateMasterlistSheet() {
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const mainSheet = spreadsheet.getSheets()[0];
+
+    if (mainSheet.getLastRow() < 2) {
+      throw new Error("The source data sheet is empty.");
+    }
+
+    const data = mainSheet.getDataRange().getValues();
+    
+    const newSpreadsheet = SpreadsheetApp.create(`Employee Masterlist - ${new Date().toLocaleDateString()}`);
+    const newSheet = newSpreadsheet.getSheets()[0];
+    
+    newSheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+    newSheet.setFrozenRows(1);
+    newSheet.autoResizeColumns(1, data[0].length);
+    
+    return newSpreadsheet.getUrl();
+
+  } catch (e) {
+    Logger.log(`Error in generateMasterlistSheet: ${e.toString()}`);
+    throw new Error(`Failed to generate masterlist. Error: ${e.message}`);
+  }
+}
+
+function generateMasterlistSheetWithPrompt() {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    const url = generateMasterlistSheet();
+    const htmlOutput = HtmlService.createHtmlOutput(`<p>Masterlist generated successfully. <a href="${url}" target="_blank">Click here to open the new spreadsheet.</a></p>`)
+        .setWidth(400)
+        .setHeight(100);
+    ui.showModalDialog(htmlOutput, 'Masterlist Generated');
+  } catch (e) {
+    ui.alert('Error', `Failed to generate masterlist: ${e.message}`, ui.ButtonSet.OK);
+  }
+}
+
+function saveJobDescription(positionId, description) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const jdSheetName = 'Job Descriptions';
+    let jdSheet = spreadsheet.getSheetByName(jdSheetName);
+
+    if (!jdSheet) {
+      jdSheet = spreadsheet.insertSheet(jdSheetName);
+      jdSheet.appendRow(['Position ID', 'Description']);
+      jdSheet.setFrozenRows(1);
+    }
+    
+    const data = jdSheet.getDataRange().getValues();
+    let found = false;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] && data[i][0].toString().trim() === positionId.toString().trim()) {
+        jdSheet.getRange(i + 1, 2).setValue(description);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      jdSheet.appendRow([positionId, description]);
+    }
+    
+    return "Job description saved successfully.";
+
+  } catch (e) {
+    Logger.log(`Error in saveJobDescription: ${e.toString()}`);
+    throw new Error(`Could not save job description. Error: ${e.message}`);
+  } finally {
+    lock.releaseLock();
+  }
 }
