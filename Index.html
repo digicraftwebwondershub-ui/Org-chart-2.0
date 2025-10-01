@@ -461,6 +461,7 @@
       <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active">Org Chart</div>
       <div onclick="switchTab('demographics')" id="tab-demographics" class="tab">Demographics</div>
       <div onclick="switchTab('resignation')" id="tab-resignation" class="tab">Resignation</div>
+      <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab">Employee Movement</div>
     </nav>
   </div>
 
@@ -640,6 +641,12 @@
         <div id="gender_chart_div" style="width: 100%; height: 400px;"></div>
       </div>
     </div>
+    <div class="mt-8 grid grid-cols-1 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Monthly New Hires (Last 12 Months)</h3>
+            <div id="new_hires_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
     <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Status</h3>
@@ -754,14 +761,90 @@
         </div>
     </div>
   </div>
+
+  <!-- Employee Movement View -->
+  <div id="employee-movement-view" class="tab-content">
+    <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
+        <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Division</label>
+                <div id="movement-division-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="movement-division-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Group</label>
+                <div id="movement-group-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="movement-group-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Department</label>
+                <div id="movement-department-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="movement-department-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Section</label>
+                <div id="movement-section-filter-container" class="searchable-dropdown mt-1"></div>
+                <input type="hidden" id="movement-section-filter-value" value="all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Level</label>
+                <div id="movement-joblevel-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Gender</label>
+                <div id="movement-gender-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Title</label>
+                <div id="movement-jobtitle-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Year</label>
+                <div id="movement-year-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+             <div>
+                <label class="block text-sm font-medium text-gray-700">Month</label>
+                <div id="movement-month-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+        </div>
+        <div class="flex justify-end items-start gap-4">
+            <button id="movement-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
+            <button onclick="drawEmployeeMovementCharts(true)" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center">
+                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
+                Refresh Data
+            </button>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Promotions by Department</h3>
+            <div id="promo_by_dept_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Transfers by Department</h3>
+            <div id="transfer_by_dept_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Promotion Rate</h3>
+            <div id="promotion_rate_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Transfer Rate</h3>
+            <div id="transfer_rate_chart_div" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+  </div>
+
 </div> <!-- Close app -->
 
 <script>
   // --- GLOBAL VARIABLES ---
   var analyticsDataLoaded = false;
   var resignationDataLoaded = false;
+  var employeeMovementDataLoaded = false;
   var analyticsFiltersPopulated = false;
   var resignationFiltersPopulated = false;
+  var movementFiltersPopulated = false;
   var fullEmployeeData = [];
   var previousHeadcountData = {};
   var dropdownListData = {};
@@ -798,6 +881,13 @@
     { id: 'section', containerId: 'resignation-section-filter-container', valueId: 'resignation-section-filter-value', defaultLabel: 'All Sections', parent: 'department' }
   ];
 
+  const MOVEMENT_FILTERS_CONFIG = [
+    { id: 'division', containerId: 'movement-division-filter-container', valueId: 'movement-division-filter-value', defaultLabel: 'All Divisions', parent: null },
+    { id: 'group', containerId: 'movement-group-filter-container', valueId: 'movement-group-filter-value', defaultLabel: 'All Groups', parent: 'division' },
+    { id: 'department', containerId: 'movement-department-filter-container', valueId: 'movement-department-filter-value', defaultLabel: 'All Departments', parent: 'group' },
+    { id: 'section', containerId: 'movement-section-filter-container', valueId: 'movement-section-filter-value', defaultLabel: 'All Sections', parent: 'department' }
+  ];
+
   // --- INITIALIZATION ---
   google.charts.load('current', { packages: ['orgchart', 'corechart'] });
   google.charts.setOnLoadCallback(fetchData);
@@ -823,6 +913,13 @@
         }
         if (!resignationDataLoaded) {
             drawResignationCharts();
+        }
+    } else if (tabId === 'employee-movement') {
+        if (!movementFiltersPopulated) {
+            populateMovementFilters();
+        }
+        if (!employeeMovementDataLoaded) {
+            drawEmployeeMovementCharts();
         }
     }
   }
@@ -1079,6 +1176,29 @@
           vAxis: { title: 'Headcount', minValue: 0 },
           fontName: 'Roboto'
         });
+
+        // Draw New Hires Chart
+        const newHiresData = new google.visualization.DataTable();
+        newHiresData.addColumn('string', 'Month');
+        newHiresData.addColumn('number', 'New Hires');
+        const monthOrder = Array.from({length: 12}, (_, i) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i, 1); // Set to the first day of the month
+            return d.toLocaleString('default', { month: 'short' }) + ' ' + d.getFullYear();
+        }).reverse();
+        
+        monthOrder.forEach(month => {
+            newHiresData.addRow([month, data.newHiresByMonth[month] || 0]);
+        });
+
+        const newHiresChart = new google.visualization.ColumnChart(document.getElementById('new_hires_chart_div'));
+        newHiresChart.draw(newHiresData, {
+            is3D: true,
+            colors: ['#10B981'],
+            legend: { position: 'none' },
+            vAxis: { title: 'Number of Hires', minValue: 0 },
+            fontName: 'Roboto'
+        });
         
       })
       .withFailureHandler(function(err) {
@@ -1183,7 +1303,7 @@
             const headcountTitle = headcountCard.querySelector('h3');
             const headcountValue = headcountCard.querySelector('p');
 
-            const allFiltersDefault = Object.values(filters).every(val => val.startsWith('All'));
+            const allFiltersDefault = Object.values(filters).every(val => String(val).toLowerCase().startsWith('all'));
 
             if (allFiltersDefault) {
                 headcountTitle.textContent = 'Total Headcount';
@@ -1280,6 +1400,135 @@
             document.getElementById('resignation-view').innerHTML = `<p class="text-red-500">Could not load resignation data. Error: ${err.message}</p>`;
         })
         .getResignationData(filters);
+  }
+
+  function populateMovementFilters() {
+    let sourceData = fullEmployeeData;
+    
+    MOVEMENT_FILTERS_CONFIG.forEach(config => {
+        const currentValue = document.getElementById(config.valueId).value;
+        const options = [config.defaultLabel, ...new Set(sourceData.map(e => e[config.id]).filter(String).sort())];
+        
+        createSearchableDropdown(config.containerId, options, null, null, (selection) => {
+            const newValue = (selection === config.defaultLabel) ? 'all' : selection;
+            if (document.getElementById(config.valueId).value !== newValue) {
+                document.getElementById(config.valueId).value = newValue;
+                
+                let childIdToReset = config.id;
+                let childConfig = MOVEMENT_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                while (childConfig) {
+                    document.getElementById(childConfig.valueId).value = 'all';
+                    childIdToReset = childConfig.id;
+                    childConfig = MOVEMENT_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                }
+                
+                populateMovementFilters(); 
+                drawEmployeeMovementCharts(true);
+            }
+        });
+        setSearchableDropdownValue(config.containerId, currentValue === 'all' ? config.defaultLabel : currentValue);
+
+        if (currentValue !== 'all') {
+            sourceData = sourceData.filter(emp => emp[config.id] === currentValue);
+        }
+    });
+
+    const lists = dropdownListData;
+    const refreshCallback = () => drawEmployeeMovementCharts(true);
+    createSearchableDropdown('movement-joblevel-filter-container', ['All Job Levels', ...(lists.joblevel || [])], null, null, refreshCallback);
+    createSearchableDropdown('movement-gender-filter-container', ['All Genders', 'Male', 'Female'], null, null, refreshCallback);
+    createSearchableDropdown('movement-jobtitle-filter-container', ['All Job Titles', ...(lists.jobtitle || [])], null, null, refreshCallback);
+    
+    const currentYear = new Date().getFullYear();
+    const years = ['All Years', ...Array.from({length: 11}, (_, i) => (currentYear - i).toString())];
+    const months = ['All Months', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    createSearchableDropdown('movement-year-filter-container', years, null, null, refreshCallback);
+    createSearchableDropdown('movement-month-filter-container', months, null, null, refreshCallback);
+
+    if (!movementFiltersPopulated) {
+      document.getElementById('movement-reset-filters-btn').addEventListener('click', resetMovementFilters);
+      movementFiltersPopulated = true;
+    }
+  }
+
+  function resetMovementFilters() {
+      MOVEMENT_FILTERS_CONFIG.forEach(config => {
+          document.getElementById(config.valueId).value = 'all';
+      });
+      
+      document.querySelector('#movement-joblevel-filter-container .searchable-dropdown-input').value = 'All Job Levels';
+      document.querySelector('#movement-gender-filter-container .searchable-dropdown-input').value = 'All Genders';
+      document.querySelector('#movement-jobtitle-filter-container .searchable-dropdown-input').value = 'All Job Titles';
+      document.querySelector('#movement-year-filter-container .searchable-dropdown-input').value = 'All Years';
+      document.querySelector('#movement-month-filter-container .searchable-dropdown-input').value = 'All Months';
+      
+      populateMovementFilters();
+      drawEmployeeMovementCharts(true);
+  }
+
+  function drawEmployeeMovementCharts(forceRefresh = false) {
+    if (employeeMovementDataLoaded && !forceRefresh) return;
+    employeeMovementDataLoaded = true; 
+    
+    const chartDivs = ['promo_by_dept_chart_div', 'transfer_by_dept_chart_div', 'promotion_rate_chart_div', 'transfer_rate_chart_div'];
+    chartDivs.forEach(id => {
+        document.getElementById(id).innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    });
+
+    const filters = {
+      division: document.getElementById('movement-division-filter-value').value,
+      group: document.getElementById('movement-group-filter-value').value,
+      department: document.getElementById('movement-department-filter-value').value,
+      section: document.getElementById('movement-section-filter-value').value,
+      jobLevel: document.querySelector('#movement-joblevel-filter-container .searchable-dropdown-input').value,
+      gender: document.querySelector('#movement-gender-filter-container .searchable-dropdown-input').value,
+      jobTitle: document.querySelector('#movement-jobtitle-filter-container .searchable-dropdown-input').value,
+      year: document.querySelector('#movement-year-filter-container .searchable-dropdown-input').value,
+      month: document.querySelector('#movement-month-filter-container .searchable-dropdown-input').value,
+    };
+
+    google.script.run
+        .withSuccessHandler(function(data) {
+            // Promotions by Dept
+            const promoDeptData = new google.visualization.DataTable();
+            promoDeptData.addColumn('string', 'Department');
+            promoDeptData.addColumn('number', 'Promotions');
+            Object.entries(data.promotionsByDept).forEach(([dept, count]) => {
+                promoDeptData.addRow([dept, count]);
+            });
+            const promoDeptChart = new google.visualization.BarChart(document.getElementById('promo_by_dept_chart_div'));
+            promoDeptChart.draw(promoDeptData, { is3D: true, colors: ['#22C55E'], fontName: 'Roboto', legend: { position: 'none' } });
+
+            // Transfers by Dept
+            const transferDeptData = new google.visualization.DataTable();
+            transferDeptData.addColumn('string', 'Department');
+            transferDeptData.addColumn('number', 'Transfers');
+            Object.entries(data.transfersByDept).forEach(([dept, count]) => {
+                transferDeptData.addRow([dept, count]);
+            });
+            const transferDeptChart = new google.visualization.BarChart(document.getElementById('transfer_by_dept_chart_div'));
+            transferDeptChart.draw(transferDeptData, { is3D: true, colors: ['#3B82F6'], fontName: 'Roboto', legend: { position: 'none' } });
+
+            // Promotion Rate
+            const promoRateData = google.visualization.arrayToDataTable([
+                ['Metric', 'Rate', { role: 'style' }],
+                ['Promotion Rate', data.promotionRate, '#F59E0B']
+            ]);
+            const promoRateChart = new google.visualization.ColumnChart(document.getElementById('promotion_rate_chart_div'));
+            promoRateChart.draw(promoRateData, { is3D: true, fontName: 'Roboto', vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, legend: { position: 'none' } });
+            
+            // Transfer Rate
+            const transferRateData = google.visualization.arrayToDataTable([
+                ['Metric', 'Rate', { role: 'style' }],
+                ['Transfer Rate', data.transferRate, '#8B5CF6']
+            ]);
+            const transferRateChart = new google.visualization.ColumnChart(document.getElementById('transfer_rate_chart_div'));
+            transferRateChart.draw(transferRateData, { is3D: true, fontName: 'Roboto', vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, legend: { position: 'none' } });
+        })
+        .withFailureHandler(function(err) {
+            document.getElementById('employee-movement-view').innerHTML = `<p class="text-red-500">Could not load employee movement data. Error: ${err.message}</p>`;
+        })
+        .getEmployeeMovementData(filters);
   }
 
   function generateMasterlist() {
