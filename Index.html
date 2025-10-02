@@ -2706,6 +2706,28 @@ function renderNotifications(data) {
       .getDetailedIncumbencyHistory(positionId);
   }
 
+  function populateHistoryModal(historyData) {
+    const tableBody = document.getElementById('history-table-body');
+    tableBody.innerHTML = '';
+    
+    if (!historyData || historyData.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No incumbency history found for this position.</td></tr>`;
+      return;
+    }
+
+    historyData.forEach(record => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.name}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.startDate}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.endDate}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.tenure}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 italic">${record.employeeHireDate}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+
 
   function closeHistoryModal() {
     document.getElementById('history-modal').style.display = 'none';
@@ -2763,6 +2785,12 @@ function closeJdModal() {
     const contentArea = document.getElementById('jd-content-area');
     contentArea.innerHTML = ''; // Clear the content (buttons or PDF)
     modal.style.display = 'none';
+}
+
+function showSavingOverlay() {
+  const savingText = document.getElementById('saving-text');
+  savingText.textContent = 'Saving...';
+  document.getElementById('saving-overlay').style.display = 'flex';
 }
 
   function hideSavingOverlay() {
