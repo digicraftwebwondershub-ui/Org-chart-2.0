@@ -7,6 +7,8 @@
 // IMPORTANT: You MUST update this URL if you create a new web app deployment that changes its link!
 // Please ensure this is the exact URL of your deployed web app that has "Execute as: Me" and "Who has access: Anyone".
 const WEB_APP_URL = "YOUR_WEB_APP_URL_GOES_HERE"; // PASTE YOUR NEW DEPLOYMENT URL HERE
+const JD_GENERAL_FOLDER_ID = '1Sv7uvDKlzFhEiM1ljCrRGvC51KgIZJfp';
+const JD_INCUMBENT_FOLDER_ID = '1ryXesBBwLs8Y1oEfLYDhDIxPQdeB_Ngx';
 
 
 // Defines the sequential order of approval roles
@@ -1130,246 +1132,250 @@ function generateNewPositionId(division, section) {
 
 
 function saveEmployeeData(dataObject, mode) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  const scriptProperties = PropertiesService.getScriptProperties();
-  try {
-    scriptProperties.setProperty('scriptChangeLock', 'true');
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    const scriptProperties = PropertiesService.getScriptProperties();
+    try {
+        scriptProperties.setProperty('scriptChangeLock', 'true');
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const mainSheet = ss.getSheets()[0];
-    const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
-    const keyMap = {};
-    headers.forEach((header, i) => {
-      const key = header.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/gi, '');
-      keyMap[key] = i;
-    });
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const mainSheet = ss.getSheets()[0];
+        const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+        const keyMap = {};
+        headers.forEach((header, i) => {
+            const key = header.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/gi, '');
+            keyMap[key] = i;
+        });
 
-    for (const key in dataObject) {
-      if (typeof dataObject[key] === 'string') {
-        dataObject[key] = dataObject[key].toUpperCase();
-      }
-    }
-
-    // --- Flags and variables for secondary actions ---
-    let isTransfer = false;
-    let oldPositionIdForTransfer = null;
-    let transferredEmployeeId = null;
-
-    let isManualVacate = false;
-    let vacatingEmployeeId = null;
-    let vacatedPositionId = null;
-
-    let isFillingVacancy = false;
-    let filledVacancyPositionId = null;
-    let newEmployeeIdForVacancy = null;
-    let newEmployeeNameForVacancy = null;
-
-    // --- Promotion/Transfer Logic (Primary Change) ---
-    if (dataObject.employeeid && (dataObject.status.toUpperCase() === 'PROMOTION' || dataObject.status.toUpperCase() === 'INTERNAL TRANSFER' || dataObject.status.toUpperCase() === 'LATERAL TRANSFER')) {
-      const allData = mainSheet.getDataRange().getValues();
-      const posIdIndex = headers.indexOf('Position ID');
-      const empIdIndex = headers.indexOf('Employee ID');
-      for (let i = 1; i < allData.length; i++) {
-        const row = allData[i];
-        if ((String(row[empIdIndex]) || '').toUpperCase() === dataObject.employeeid.toUpperCase() && (String(row[posIdIndex]) || '').toUpperCase() !== dataObject.positionid.toUpperCase()) {
-          const oldRowIndex = i + 1;
-          isTransfer = true;
-          oldPositionIdForTransfer = row[posIdIndex];
-          transferredEmployeeId = dataObject.employeeid.toUpperCase();
-
-          if (dataObject.startdateinposition) {
-            scriptProperties.setProperties({
-              'pendingResignationPosId': oldPositionIdForTransfer.toUpperCase(),
-              'pendingResignationDate': dataObject.startdateinposition
-            });
-          }
-          mainSheet.getRange(oldRowIndex, keyMap['employeeid'] + 1).clearContent();
-          mainSheet.getRange(oldRowIndex, keyMap['employeename'] + 1).clearContent();
-          mainSheet.getRange(oldRowIndex, keyMap['gender'] + 1).clearContent();
-          mainSheet.getRange(oldRowIndex, keyMap['datehired'] + 1).clearContent();
-          mainSheet.getRange(oldRowIndex, keyMap['contractenddate'] + 1).clearContent();
-          mainSheet.getRange(oldRowIndex, keyMap['status'] + 1).setValue('VACANT');
-          break;
-        }
-      }
-    }
-
-    if ((dataObject.status === 'VACANT' || dataObject.status === 'RESIGNED') && dataObject.effectivedate) {
-      PropertiesService.getScriptProperties().setProperties({
-        'pendingEffectiveDatePosId': dataObject.positionid.toUpperCase(),
-        'pendingEffectiveDate': dataObject.effectivedate
-      });
-    }
-    if (dataObject.startdateinposition) {
-      PropertiesService.getScriptProperties().setProperty('overrideTimestamp', dataObject.startdateinposition);
-    }
-
-    // --- Main Add/Edit Logic (Primary Change) ---
-    if (mode === 'add') {
-      const newRowData = Array(headers.length).fill('');
-      for (const key in dataObject) {
-        if (keyMap.hasOwnProperty(key)) newRowData[keyMap[key]] = dataObject[key];
-      }
-      const newPositionId = dataObject.positionid;
-      let insertRowIndex = -1;
-      if (newPositionId) {
-        const positionIdPrefix = newPositionId.substring(0, newPositionId.lastIndexOf('-'));
-        if (positionIdPrefix) {
-          const positionIdColValues = mainSheet.getRange("A1:A").getValues().flat();
-          for (let i = positionIdColValues.length - 1; i > 0; i--) {
-            const currentPositionId = positionIdColValues[i];
-            if (currentPositionId && currentPositionId.startsWith(positionIdPrefix)) {
-              insertRowIndex = i + 1;
-              break;
+        for (const key in dataObject) {
+            if (typeof dataObject[key] === 'string') {
+                dataObject[key] = dataObject[key].toUpperCase();
             }
-          }
-        }
-      }
-      if (insertRowIndex !== -1) {
-        mainSheet.insertRowAfter(insertRowIndex);
-        mainSheet.getRange(insertRowIndex + 1, 1, 1, newRowData.length).setValues([newRowData]);
-      } else {
-        mainSheet.appendRow(newRowData);
-      }
-    } else if (mode === 'edit') {
-      const positionId = dataObject.positionid;
-      const positionIdColValues = mainSheet.getRange("A2:A").getValues();
-      const rowIndex = positionIdColValues.findIndex(r => r[0] == positionId) + 2;
-      if (rowIndex === 1) throw new Error(`Position ID ${positionId} not found for editing.`);
-
-      const rangeToUpdate = mainSheet.getRange(rowIndex, 1, 1, headers.length);
-      const existingRowData = rangeToUpdate.getValues()[0];
-      const statusColIndex = keyMap['status'];
-      const originalStatus = existingRowData[statusColIndex];
-      const originalEmployeeId = existingRowData[keyMap['employeeid']];
-
-      // Check for manual vacate scenario
-      if (dataObject.status.toUpperCase() === 'VACANT' && originalEmployeeId) {
-        isManualVacate = true;
-        vacatingEmployeeId = originalEmployeeId.toUpperCase();
-        vacatedPositionId = positionId;
-      }
-
-      // Check for filling vacancy scenario
-      if (originalStatus && originalStatus.toUpperCase() === 'VACANT' && dataObject.status && dataObject.status.toUpperCase() !== 'VACANT') {
-        isFillingVacancy = true;
-        filledVacancyPositionId = positionId;
-        newEmployeeIdForVacancy = dataObject.employeeid;
-        newEmployeeNameForVacancy = dataObject.employeename;
-      }
-
-      // Ghost tenure fix
-      if (originalStatus && originalStatus.toUpperCase() === 'VACANT') {
-        const isFillingAction = dataObject.status && dataObject.status.toUpperCase() !== 'VACANT' && dataObject.employeeid;
-        if (!isFillingAction) {
-          dataObject.employeeid = ''; dataObject.employeename = ''; dataObject.gender = '';
-          dataObject.datehired = ''; dataObject.contractenddate = ''; dataObject.status = 'VACANT';
-        }
-      }
-
-      // Apply primary data changes from the form
-      for (const key in dataObject) {
-        if (keyMap.hasOwnProperty(key)) {
-          existingRowData[keyMap[key]] = dataObject[key];
-        }
-      }
-      rangeToUpdate.setValues([existingRowData]);
-
-      // --- NEW: Resignation Data Logging ---
-      if (dataObject.status === 'RESIGNED') {
-        let resignationSheet = ss.getSheetByName('Resignation Data');
-        if (!resignationSheet) {
-          resignationSheet = ss.insertSheet('Resignation Data');
-          const resignationHeaders = [
-            'Timestamp', 'Position ID', 'Employee ID', 'Employee Name',
-            'Division', 'Group', 'Department', 'Section', 'Job Title',
-            'Level', 'Job Level', 'Gender', 'Contract Type', 'Date Hired', 'Resignation Date', 'Reason for Leaving'
-          ];
-          resignationSheet.appendRow(resignationHeaders);
-          resignationSheet.setFrozenRows(1);
         }
 
-        const resignedEmployeeData = [
-          new Date(),
-          dataObject.positionid,
-          dataObject.employeeid,
-          dataObject.employeename,
-          dataObject.division,
-          dataObject.group,
-          dataObject.department,
-          dataObject.section,
-          dataObject.jobtitle,
-          dataObject.level,
-          dataObject.joblevel,
-          dataObject.gender,
-          dataObject.contracttype,
-          dataObject.datehired,
-          dataObject.effectivedate,
-          dataObject.reasonforleaving || ''
-        ];
-        resignationSheet.appendRow(resignedEmployeeData);
-      }
+        // --- Flags and variables for secondary actions ---
+        let isTransfer = false;
+        let oldPositionIdForTransfer = null;
+        let transferredEmployeeId = null;
+
+        let isManualVacate = false;
+        let vacatingEmployeeId = null;
+        let vacatedPositionId = null;
+
+        let isFillingVacancy = false;
+        let filledVacancyPositionId = null;
+        let newEmployeeIdForVacancy = null;
+        let newEmployeeNameForVacancy = null;
+
+        // --- Promotion/Transfer Logic (Primary Change) ---
+        if (dataObject.employeeid && (dataObject.status.toUpperCase() === 'PROMOTION' || dataObject.status.toUpperCase() === 'INTERNAL TRANSFER' || dataObject.status.toUpperCase() === 'LATERAL TRANSFER')) {
+            const allData = mainSheet.getDataRange().getValues();
+            const posIdIndex = headers.indexOf('Position ID');
+            const empIdIndex = headers.indexOf('Employee ID');
+            for (let i = 1; i < allData.length; i++) {
+                const row = allData[i];
+                if ((String(row[empIdIndex]) || '').toUpperCase() === dataObject.employeeid.toUpperCase() && (String(row[posIdIndex]) || '').toUpperCase() !== dataObject.positionid.toUpperCase()) {
+                    const oldRowIndex = i + 1;
+                    isTransfer = true;
+                    oldPositionIdForTransfer = row[posIdIndex];
+                    transferredEmployeeId = dataObject.employeeid.toUpperCase();
+
+                    if (dataObject.startdateinposition) {
+                        scriptProperties.setProperties({
+                            'pendingResignationPosId': oldPositionIdForTransfer.toUpperCase(),
+                            'pendingResignationDate': dataObject.startdateinposition
+                        });
+                    }
+                    mainSheet.getRange(oldRowIndex, keyMap['employeeid'] + 1).clearContent();
+                    mainSheet.getRange(oldRowIndex, keyMap['employeename'] + 1).clearContent();
+                    mainSheet.getRange(oldRowIndex, keyMap['gender'] + 1).clearContent();
+                    mainSheet.getRange(oldRowIndex, keyMap['datehired'] + 1).clearContent();
+                    mainSheet.getRange(oldRowIndex, keyMap['contractenddate'] + 1).clearContent();
+                    mainSheet.getRange(oldRowIndex, keyMap['status'] + 1).setValue('VACANT');
+                    break;
+                }
+            }
+        }
+
+        if ((dataObject.status === 'VACANT' || dataObject.status === 'RESIGNED') && dataObject.effectivedate) {
+            PropertiesService.getScriptProperties().setProperties({
+                'pendingEffectiveDatePosId': dataObject.positionid.toUpperCase(),
+                'pendingEffectiveDate': dataObject.effectivedate
+            });
+        }
+        if (dataObject.startdateinposition) {
+            PropertiesService.getScriptProperties().setProperty('overrideTimestamp', dataObject.startdateinposition);
+        }
+
+        // --- Main Add/Edit Logic (Primary Change) ---
+        if (mode === 'add') {
+            const newRowData = Array(headers.length).fill('');
+            for (const key in dataObject) {
+                if (keyMap.hasOwnProperty(key)) newRowData[keyMap[key]] = dataObject[key];
+            }
+            const newPositionId = dataObject.positionid;
+            let insertRowIndex = -1;
+            if (newPositionId) {
+                const positionIdPrefix = newPositionId.substring(0, newPositionId.lastIndexOf('-'));
+                if (positionIdPrefix) {
+                    const positionIdColValues = mainSheet.getRange("A1:A").getValues().flat();
+                    for (let i = positionIdColValues.length - 1; i > 0; i--) {
+                        const currentPositionId = positionIdColValues[i];
+                        if (currentPositionId && currentPositionId.startsWith(positionIdPrefix)) {
+                            insertRowIndex = i + 1;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (insertRowIndex !== -1) {
+                mainSheet.insertRowAfter(insertRowIndex);
+                mainSheet.getRange(insertRowIndex + 1, 1, 1, newRowData.length).setValues([newRowData]);
+            } else {
+                mainSheet.appendRow(newRowData);
+            }
+        } else if (mode === 'edit') {
+            const positionId = dataObject.positionid;
+            const positionIdColValues = mainSheet.getRange("A2:A").getValues();
+            const rowIndex = positionIdColValues.findIndex(r => r[0] == positionId) + 2;
+            if (rowIndex === 1) throw new Error(`Position ID ${positionId} not found for editing.`);
+
+            const rangeToUpdate = mainSheet.getRange(rowIndex, 1, 1, headers.length);
+            const existingRowData = rangeToUpdate.getValues()[0];
+            const statusColIndex = keyMap['status'];
+            const originalStatus = existingRowData[statusColIndex];
+            const originalEmployeeId = existingRowData[keyMap['employeeid']];
+
+            // Check for manual vacate scenario
+            if (dataObject.status.toUpperCase() === 'VACANT' && originalEmployeeId) {
+                isManualVacate = true;
+                vacatingEmployeeId = originalEmployeeId.toUpperCase();
+                vacatedPositionId = positionId;
+            }
+
+            // Check for filling vacancy scenario
+            if (originalStatus && originalStatus.toUpperCase() === 'VACANT' && dataObject.status && dataObject.status.toUpperCase() !== 'VACANT') {
+                isFillingVacancy = true;
+                filledVacancyPositionId = positionId;
+                newEmployeeIdForVacancy = dataObject.employeeid;
+                newEmployeeNameForVacancy = dataObject.employeename;
+            }
+
+            // Ghost tenure fix
+            if (originalStatus && originalStatus.toUpperCase() === 'VACANT') {
+                const isFillingAction = dataObject.status && dataObject.status.toUpperCase() !== 'VACANT' && dataObject.employeeid;
+                if (!isFillingAction) {
+                    dataObject.employeeid = '';
+                    dataObject.employeename = '';
+                    dataObject.gender = '';
+                    dataObject.datehired = '';
+                    dataObject.contractenddate = '';
+                    dataObject.status = 'VACANT';
+                }
+            }
+
+            // Apply primary data changes from the form
+            for (const key in dataObject) {
+                if (keyMap.hasOwnProperty(key)) {
+                    existingRowData[keyMap[key]] = dataObject[key];
+                }
+            }
+            rangeToUpdate.setValues([existingRowData]);
+
+            // --- NEW: Resignation Data Logging ---
+            if (dataObject.status === 'RESIGNED') {
+                let resignationSheet = ss.getSheetByName('Resignation Data');
+                if (!resignationSheet) {
+                    resignationSheet = ss.insertSheet('Resignation Data');
+                    const resignationHeaders = [
+                        'Timestamp', 'Position ID', 'Employee ID', 'Employee Name',
+                        'Division', 'Group', 'Department', 'Section', 'Job Title',
+                        'Level', 'Job Level', 'Gender', 'Contract Type', 'Date Hired', 'Resignation Date', 'Reason for Leaving'
+                    ];
+                    resignationSheet.appendRow(resignationHeaders);
+                    resignationSheet.setFrozenRows(1);
+                }
+
+                const resignedEmployeeData = [
+                    new Date(),
+                    dataObject.positionid,
+                    dataObject.employeeid,
+                    dataObject.employeename,
+                    dataObject.division,
+                    dataObject.group,
+                    dataObject.department,
+                    dataObject.section,
+                    dataObject.jobtitle,
+                    dataObject.level,
+                    dataObject.joblevel,
+                    dataObject.gender,
+                    dataObject.contracttype,
+                    dataObject.datehired,
+                    dataObject.effectivedate,
+                    dataObject.reasonforleaving || ''
+                ];
+                resignationSheet.appendRow(resignedEmployeeData);
+            }
+        }
+
+        // --- STEP 1: Log only the primary changes ---
+        SpreadsheetApp.flush();
+        logDataChanges();
+
+        // --- STEP 2: Perform secondary, un-logged actions ---
+        let secondaryChangesMade = false;
+        const allDataForSecondary = mainSheet.getDataRange().getValues(); // Get fresh data
+        const reportingToIdIndex = keyMap['reportingtoid'];
+        const reportingToNameIndex = keyMap['reportingto'];
+
+        // Action A: Re-assign subordinates from a transfer
+        if (isTransfer && reportingToIdIndex !== undefined) {
+            for (let i = 1; i < allDataForSecondary.length; i++) {
+                if ((String(allDataForSecondary[i][reportingToIdIndex]) || '').toUpperCase() === transferredEmployeeId) {
+                    mainSheet.getRange(i + 1, reportingToIdIndex + 1).setValue(oldPositionIdForTransfer);
+                    mainSheet.getRange(i + 1, reportingToNameIndex + 1).clearContent();
+                    secondaryChangesMade = true;
+                }
+            }
+        }
+
+        // Action B: Re-assign subordinates from a manual vacate
+        if (isManualVacate && reportingToIdIndex !== undefined) {
+            for (let i = 1; i < allDataForSecondary.length; i++) {
+                if ((String(allDataForSecondary[i][reportingToIdIndex]) || '').toUpperCase() === vacatingEmployeeId) {
+                    mainSheet.getRange(i + 1, reportingToIdIndex + 1).setValue(vacatedPositionId);
+                    mainSheet.getRange(i + 1, reportingToNameIndex + 1).clearContent();
+                    secondaryChangesMade = true;
+                }
+            }
+        }
+
+        // Action C: Re-assign subordinates when filling a vacancy
+        if (isFillingVacancy && reportingToIdIndex !== undefined) {
+            for (let i = 1; i < allDataForSecondary.length; i++) {
+                if (allDataForSecondary[i][reportingToIdIndex] === filledVacancyPositionId) {
+                    mainSheet.getRange(i + 1, reportingToIdIndex + 1).setValue(newEmployeeIdForVacancy);
+                    mainSheet.getRange(i + 1, reportingToNameIndex + 1).setValue(newEmployeeNameForVacancy);
+                    secondaryChangesMade = true;
+                }
+            }
+        }
+
+        // --- STEP 3: Manually sync the data state if secondary changes were made ---
+        if (secondaryChangesMade) {
+            SpreadsheetApp.flush();
+            const finalData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+            scriptProperties.setProperty('lastKnownData', JSON.stringify(finalData));
+        }
+
+        return "Data saved successfully.";
+    } catch (e) {
+        Logger.log('Error in saveEmployeeData: ' + e.message + ' Stack: ' + e.stack);
+        throw new Error('Failed to save data. ' + e.message);
+    } finally {
+        scriptProperties.deleteProperty('scriptChangeLock');
+        lock.releaseLock();
     }
-
-    // --- STEP 1: Log only the primary changes ---
-    SpreadsheetApp.flush();
-    logDataChanges();
-
-    // --- STEP 2: Perform secondary, un-logged actions ---
-    let secondaryChangesMade = false;
-    const allDataForSecondary = mainSheet.getDataRange().getValues(); // Get fresh data
-    const reportingToIdIndex = keyMap['reportingtoid'];
-    const reportingToNameIndex = keyMap['reportingto'];
-
-    // Action A: Re-assign subordinates from a transfer
-    if (isTransfer && reportingToIdIndex !== undefined) {
-      for (let i = 1; i < allDataForSecondary.length; i++) {
-        if ((String(allDataForSecondary[i][reportingToIdIndex]) || '').toUpperCase() === transferredEmployeeId) {
-          mainSheet.getRange(i + 1, reportingToIdIndex + 1).setValue(oldPositionIdForTransfer);
-          mainSheet.getRange(i + 1, reportingToNameIndex + 1).clearContent();
-          secondaryChangesMade = true;
-        }
-      }
-    }
-
-    // Action B: Re-assign subordinates from a manual vacate
-    if (isManualVacate && reportingToIdIndex !== undefined) {
-      for (let i = 1; i < allDataForSecondary.length; i++) {
-        if ((String(allDataForSecondary[i][reportingToIdIndex]) || '').toUpperCase() === vacatingEmployeeId) {
-          mainSheet.getRange(i + 1, reportingToIdIndex + 1).setValue(vacatedPositionId);
-          mainSheet.getRange(i + 1, reportingToNameIndex + 1).clearContent();
-          secondaryChangesMade = true;
-        }
-      }
-    }
-
-    // Action C: Re-assign subordinates when filling a vacancy
-    if (isFillingVacancy && reportingToIdIndex !== undefined) {
-      for (let i = 1; i < allDataForSecondary.length; i++) {
-        if (allDataForSecondary[i][reportingToIdIndex] === filledVacancyPositionId) {
-          mainSheet.getRange(i + 1, reportingToIdIndex + 1).setValue(newEmployeeIdForVacancy);
-          mainSheet.getRange(i + 1, reportingToNameIndex + 1).setValue(newEmployeeNameForVacancy);
-          secondaryChangesMade = true;
-        }
-      }
-    }
-
-    // --- STEP 3: Manually sync the data state if secondary changes were made ---
-    if (secondaryChangesMade) {
-      SpreadsheetApp.flush();
-      const finalData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
-      scriptProperties.setProperty('lastKnownData', JSON.stringify(finalData));
-    }
-
-    return "Data saved successfully.";
-  } catch (e) {
-    Logger.log('Error in saveEmployeeData: ' + e.message + ' Stack: ' + e.stack);
-    throw new Error('Failed to save data. ' + e.message);
-  } finally {
-    scriptProperties.deleteProperty('scriptChangeLock');
-    lock.releaseLock();
-  }
 }
 
 
@@ -1904,38 +1910,6 @@ function _parseDate(dateInput) {
   return null; // Return null if input is not a valid date
 }
 
-function getJobDescription(positionId) {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const jdSheetName = 'Job Descriptions';
-    let jdSheet = spreadsheet.getSheetByName(jdSheetName);
-
-    if (!jdSheet) {
-      jdSheet = spreadsheet.insertSheet(jdSheetName);
-      jdSheet.appendRow(['Position ID', 'Description']);
-      jdSheet.setFrozenRows(1);
-      return null;
-    }
-
-    if (jdSheet.getLastRow() < 2) {
-      return null;
-    }
-
-    const data = jdSheet.getRange(2, 1, jdSheet.getLastRow() - 1, 2).getValues();
-    
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][0] && data[i][0].toString().trim() === positionId.toString().trim()) {
-        return data[i][1] || 'No description provided.';
-      }
-    }
-    
-    return null;
-
-  } catch (e) {
-    Logger.log(`Error in getJobDescription: ${e.toString()}`);
-    throw new Error(`Could not retrieve job description. Error: ${e.message}`);
-  }
-}
 
 function getResignationData(filters) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2223,6 +2197,7 @@ function getAnalyticsData(filters) {
     losCounts: losCounts,
     trendData: trendData,
     totalHeadcount: totalHeadcount,
+    filteredPositionsCount: filteredData.length,
     overallHeadcount: overallHeadcount,
     newHiresByMonth: newHiresByMonth
   };
@@ -2371,40 +2346,45 @@ function generateMasterlistSheetWithPrompt() {
   }
 }
 
-function saveJobDescription(positionId, description) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
+function getJdFileUrl(positionId, employeeId, jobTitle, type) {
   try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const jdSheetName = 'Job Descriptions';
-    let jdSheet = spreadsheet.getSheetByName(jdSheetName);
-
-    if (!jdSheet) {
-      jdSheet = spreadsheet.insertSheet(jdSheetName);
-      jdSheet.appendRow(['Position ID', 'Description']);
-      jdSheet.setFrozenRows(1);
-    }
+    let folder;
+    let files;
     
-    const data = jdSheet.getDataRange().getValues();
-    let found = false;
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] && data[i][0].toString().trim() === positionId.toString().trim()) {
-        jdSheet.getRange(i + 1, 2).setValue(description);
-        found = true;
-        break;
+    if (type === 'general') {
+      folder = DriveApp.getFolderById(JD_GENERAL_FOLDER_ID);
+      const searchPrefix = positionId;
+      files = folder.getFiles();
+      // Loop through all files in the folder to find a match
+      while (files.hasNext()) {
+        const file = files.next();
+        // If a file starts with the Position ID, we've found it
+        if (file.getName().startsWith(searchPrefix)) {
+          // Use the correct embedding URL format
+          return `https://drive.google.com/file/d/${file.getId()}/preview`;
+        }
       }
+    } else if (type === 'incumbent') {
+      if (!employeeId) {
+        return null; // Still require an employeeId for this type
+      }
+      folder = DriveApp.getFolderById(JD_INCUMBENT_FOLDER_ID);
+      // The incumbent filename is more specific, so we can do a more targeted search
+      const fileName = `${positionId}-${jobTitle}-${employeeId}.pdf`;
+      files = folder.getFilesByName(fileName);
+      if (files.hasNext()) {
+        const file = files.next();
+        // Use the correct embedding URL format
+        return `https://drive.google.com/file/d/${file.getId()}/preview`;
+      }
+    } else {
+      throw new Error("Invalid job description type specified.");
     }
 
-    if (!found) {
-      jdSheet.appendRow([positionId, description]);
-    }
-    
-    return "Job description saved successfully.";
+    return null; // Return null if no file was found after searching
 
   } catch (e) {
-    Logger.log(`Error in saveJobDescription: ${e.toString()}`);
-    throw new Error(`Could not save job description. Error: ${e.message}`);
-  } finally {
-    lock.releaseLock();
+    Logger.log(`Error in getJdFileUrl: ${e.toString()}`);
+    return `Error: ${e.message}`;
   }
 }
