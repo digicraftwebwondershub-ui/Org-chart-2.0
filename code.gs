@@ -2223,6 +2223,7 @@ function getAnalyticsData(filters) {
     losCounts: losCounts,
     trendData: trendData,
     totalHeadcount: totalHeadcount,
+    filteredPositionsCount: filteredData.length,
     overallHeadcount: overallHeadcount,
     newHiresByMonth: newHiresByMonth
   };

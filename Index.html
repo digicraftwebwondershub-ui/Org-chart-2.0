@@ -618,9 +618,15 @@
             </div>
         </div>
         <div class="flex justify-between items-start gap-4">
-            <div id="analytics-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow w-1/3">
-                <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
-                <p class="text-3xl font-bold">--</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-2/3">
+                <div id="analytics-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow">
+                    <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
+                 <div id="analytics-vacant-card" class="bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded-md shadow">
+                    <h3 class="font-bold text-lg mb-2">Vacant</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
             </div>
             <div class="flex space-x-2">
                 <button id="analytics-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
@@ -632,11 +638,7 @@
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h3 class="text-xl font-bold text-slate-800 mb-4">Headcount Trend</h3>
-        <div id="trends_chart_div" style="width: 100%; height: 400px;"></div>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow-md">
+      <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
         <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Gender</h3>
         <div id="gender_chart_div" style="width: 100%; height: 400px;"></div>
       </div>
@@ -997,7 +999,6 @@
     analyticsDataLoaded = true;
     
     // Show a loader in each chart div
-    document.getElementById('trends_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('status_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('contract_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('gender_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
@@ -1018,10 +1019,12 @@
 
     google.script.run
       .withSuccessHandler(function(data) {
-        // Update Headcount Card
+        // Update Headcount Cards
         const headcountCard = document.querySelector('#analytics-headcount-card');
         const headcountTitle = headcountCard.querySelector('h3');
         const headcountValue = headcountCard.querySelector('p');
+        const vacantCard = document.querySelector('#analytics-vacant-card');
+        const vacantValue = vacantCard.querySelector('p');
         
         const divisionFilter = document.getElementById('analytics-division-filter-value').value;
         const groupFilter = document.getElementById('analytics-group-filter-value').value;
@@ -1036,11 +1039,13 @@
                                   jobLevelFilter.startsWith('All') && posStatusFilter.startsWith('All') && genderFilter.startsWith('All') && jobTitleFilter.startsWith('All');
 
         if (allFiltersDefault) {
-          headcountTitle.textContent = 'Total Headcount';
+          headcountTitle.textContent = 'Total Filled';
           headcountValue.textContent = data.overallHeadcount;
+          vacantValue.textContent = data.filteredPositionsCount - data.overallHeadcount;
         } else {
-          headcountTitle.textContent = 'Filtered Headcount';
+          headcountTitle.textContent = 'Filtered Filled';
           headcountValue.textContent = data.totalHeadcount;
+          vacantValue.textContent = data.filteredPositionsCount - data.totalHeadcount;
         }
 
         // --- Helper function to create detailed pie chart labels ---
@@ -1156,25 +1161,6 @@
             annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
             colors: ['#FFDB58'],
             fontName: 'Roboto'
-        });
-
-        // Draw Headcount Trend Chart (3D Column)
-        const trendData = new google.visualization.DataTable();
-        trendData.addColumn('string', 'Month');
-        trendData.addColumn('number', 'Filled');
-        trendData.addColumn('number', 'Vacant');
-        if (data.trendData.length > 0) {
-            data.trendData.forEach(d => {
-              trendData.addRow([d.month, d.filled, d.vacant]);
-            });
-        }
-        const trendChart = new google.visualization.ColumnChart(document.getElementById('trends_chart_div'));
-        trendChart.draw(trendData, {
-          is3D: true,
-          isStacked: true,
-          hAxis: { title: 'Month' },
-          vAxis: { title: 'Headcount', minValue: 0 },
-          fontName: 'Roboto'
         });
 
         // Draw New Hires Chart
