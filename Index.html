@@ -1181,6 +1181,7 @@
         const newHiresData = new google.visualization.DataTable();
         newHiresData.addColumn('string', 'Month');
         newHiresData.addColumn('number', 'New Hires');
+        newHiresData.addColumn({ type: 'number', role: 'annotation' });
         const monthOrder = Array.from({length: 12}, (_, i) => {
             const d = new Date();
             d.setMonth(d.getMonth() - i, 1); // Set to the first day of the month
@@ -1188,7 +1189,8 @@
         }).reverse();
         
         monthOrder.forEach(month => {
-            newHiresData.addRow([month, data.newHiresByMonth[month] || 0]);
+            const hires = data.newHiresByMonth[month] || 0;
+            newHiresData.addRow([month, hires, hires]);
         });
 
         const newHiresChart = new google.visualization.ColumnChart(document.getElementById('new_hires_chart_div'));
@@ -1197,6 +1199,7 @@
             colors: ['#10B981'],
             legend: { position: 'none' },
             vAxis: { title: 'Number of Hires', minValue: 0 },
+            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
             fontName: 'Roboto'
         });
         
