@@ -408,9 +408,10 @@
       <h2 id="jd-modal-title" class="text-2xl font-bold text-slate-800">Job Description</h2>
       <button onclick="closeJdModal()" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
     </div>
-    <div id="jd-content" class="prose max-w-none">
-      <p>Loading...</p>
-    </div>
+    
+    <div id="jd-content-area" class="prose max-w-none">
+      </div>
+
     <div class="mt-6 flex justify-end">
       <button onclick="closeJdModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
     </div>
@@ -618,9 +619,15 @@
             </div>
         </div>
         <div class="flex justify-between items-start gap-4">
-            <div id="analytics-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow w-1/3">
-                <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
-                <p class="text-3xl font-bold">--</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-2/3">
+                <div id="analytics-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow">
+                    <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
+                 <div id="analytics-vacant-card" class="bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded-md shadow">
+                    <h3 class="font-bold text-lg mb-2">Vacant</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
             </div>
             <div class="flex space-x-2">
                 <button id="analytics-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
@@ -632,11 +639,7 @@
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="bg-white p-6 rounded-lg shadow-md">
-        <h3 class="text-xl font-bold text-slate-800 mb-4">Headcount Trend</h3>
-        <div id="trends_chart_div" style="width: 100%; height: 400px;"></div>
-      </div>
-      <div class="bg-white p-6 rounded-lg shadow-md">
+      <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
         <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Gender</h3>
         <div id="gender_chart_div" style="width: 100%; height: 400px;"></div>
       </div>
@@ -997,7 +1000,6 @@
     analyticsDataLoaded = true;
     
     // Show a loader in each chart div
-    document.getElementById('trends_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('status_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('contract_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('gender_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
@@ -1018,10 +1020,12 @@
 
     google.script.run
       .withSuccessHandler(function(data) {
-        // Update Headcount Card
+        // Update Headcount Cards
         const headcountCard = document.querySelector('#analytics-headcount-card');
         const headcountTitle = headcountCard.querySelector('h3');
         const headcountValue = headcountCard.querySelector('p');
+        const vacantCard = document.querySelector('#analytics-vacant-card');
+        const vacantValue = vacantCard.querySelector('p');
         
         const divisionFilter = document.getElementById('analytics-division-filter-value').value;
         const groupFilter = document.getElementById('analytics-group-filter-value').value;
@@ -1036,11 +1040,13 @@
                                   jobLevelFilter.startsWith('All') && posStatusFilter.startsWith('All') && genderFilter.startsWith('All') && jobTitleFilter.startsWith('All');
 
         if (allFiltersDefault) {
-          headcountTitle.textContent = 'Total Headcount';
+          headcountTitle.textContent = 'Total Filled';
           headcountValue.textContent = data.overallHeadcount;
+          vacantValue.textContent = data.filteredPositionsCount - data.overallHeadcount;
         } else {
-          headcountTitle.textContent = 'Filtered Headcount';
+          headcountTitle.textContent = 'Filtered Filled';
           headcountValue.textContent = data.totalHeadcount;
+          vacantValue.textContent = data.filteredPositionsCount - data.totalHeadcount;
         }
 
         // --- Helper function to create detailed pie chart labels ---
@@ -1156,25 +1162,6 @@
             annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
             colors: ['#FFDB58'],
             fontName: 'Roboto'
-        });
-
-        // Draw Headcount Trend Chart (3D Column)
-        const trendData = new google.visualization.DataTable();
-        trendData.addColumn('string', 'Month');
-        trendData.addColumn('number', 'Filled');
-        trendData.addColumn('number', 'Vacant');
-        if (data.trendData.length > 0) {
-            data.trendData.forEach(d => {
-              trendData.addRow([d.month, d.filled, d.vacant]);
-            });
-        }
-        const trendChart = new google.visualization.ColumnChart(document.getElementById('trends_chart_div'));
-        trendChart.draw(trendData, {
-          is3D: true,
-          isStacked: true,
-          hAxis: { title: 'Month' },
-          vAxis: { title: 'Headcount', minValue: 0 },
-          fontName: 'Roboto'
         });
 
         // Draw New Hires Chart
@@ -1800,7 +1787,7 @@
                                 <button title="Deactivate" onclick="event.stopPropagation(); deactivateEmployee('${emp.positionId}')" class="action-btn">
                                   <svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
                                 </button>
-                                <button title="Job Description" onclick="event.stopPropagation(); openJdModal('${emp.positionId}')" class="action-btn">
+                                <button title="Job Description" onclick="event.stopPropagation(); openJdModal('${emp.positionId}', '${emp.employeeId || ''}', '${emp.jobTitle || ''}')" class="action-btn">
                                   <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2V4a2 2 0 00-2-2H9z"></path><path d="M4 12a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"></path></svg>
                                 </button>
                               </div>`;
@@ -2719,64 +2706,64 @@ function renderNotifications(data) {
       .getDetailedIncumbencyHistory(positionId);
   }
 
-  function populateHistoryModal(historyData) {
-    const tableBody = document.getElementById('history-table-body');
-    tableBody.innerHTML = '';
-    
-    if (!historyData || historyData.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No incumbency history found for this position.</td></tr>`;
-      return;
-    }
-
-    historyData.forEach(record => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.name}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.startDate}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.endDate}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.tenure}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 italic">${record.employeeHireDate}</td>
-      `;
-      tableBody.appendChild(row);
-    });
-  }
 
   function closeHistoryModal() {
     document.getElementById('history-modal').style.display = 'none';
   }
 
-  function openJdModal(positionId) {
+  function openJdModal(positionId, employeeId, jobTitle) {
     const modal = document.getElementById('jd-modal');
     const title = document.getElementById('jd-modal-title');
-    const content = document.getElementById('jd-content');
-    
-    title.textContent = `Job Description for ${positionId}`;
-    content.innerHTML = '<p>Loading...</p>';
+    const contentArea = document.getElementById('jd-content-area');
+
+    title.textContent = `Job Description for ${jobTitle} (${positionId})`;
+
+    // HTML for the two buttons
+    let buttonsHtml = `
+        <p class="mb-4">Please select which version of the job description you would like to view:</p>
+        <div class="flex justify-center gap-4">
+            <button onclick="showJdFile('${positionId}', '${employeeId}', '${jobTitle}', 'general')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Job Description
+            </button>
+            <button onclick="showJdFile('${positionId}', '${employeeId}', '${jobTitle}', 'incumbent')" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" ${!employeeId ? 'disabled' : ''} title="${!employeeId ? 'This position is vacant' : ''}">
+                JD with Incumbent Signature
+            </button>
+        </div>
+    `;
+
+    contentArea.innerHTML = buttonsHtml;
     modal.style.display = 'flex';
-    
+}
+
+function showJdFile(positionId, employeeId, jobTitle, type) {
+    const contentArea = document.getElementById('jd-content-area');
+    contentArea.innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div><p class="ml-4">Finding file in Google Drive...</p></div>';
+
     google.script.run
-      .withSuccessHandler(function(jd) {
-        if (jd) {
-          content.innerHTML = jd;
-        } else {
-          content.innerHTML = '<p class="text-gray-500">No job description found for this position.</p>';
-        }
-      })
-      .withFailureHandler(function(err) {
-        content.innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
-      })
-      .getJobDescription(positionId);
-  }
+        .withSuccessHandler(function(url) {
+            if (url && url.startsWith('http')) {
+                // Embed the PDF using an iframe for better compatibility
+                contentArea.innerHTML = `<iframe src="${url}" style="width:100%; height:60vh; border:none;"></iframe>`;
+            } else if (url && url.startsWith('Error:')) {
+                 contentArea.innerHTML = `<p class="text-red-500 text-center font-bold">An error occurred: ${url.substring(7)}</p>`;
+            }
+            else {
+                contentArea.innerHTML = '<p class="text-center text-gray-600 font-bold">Sorry, the requested job description file could not be found in Google Drive.</p>';
+            }
+        })
+        .withFailureHandler(function(err) {
+            contentArea.innerHTML = `<p class="text-red-500 text-center font-bold">Failed to retrieve file URL. Error: ${err.message}</p>`;
+        })
+        .getJdFileUrl(positionId, employeeId, jobTitle, type);
+}
 
-  function closeJdModal() {
-    document.getElementById('jd-modal').style.display = 'none';
-  }
 
-  function showSavingOverlay() {
-    document.getElementById('loader').style.display = 'block';
-    document.getElementById('saving-text').textContent = 'Saving...';
-    document.getElementById('saving-overlay').style.display = 'flex';
-  }
+function closeJdModal() {
+    const modal = document.getElementById('jd-modal');
+    const contentArea = document.getElementById('jd-content-area');
+    contentArea.innerHTML = ''; // Clear the content (buttons or PDF)
+    modal.style.display = 'none';
+}
 
   function hideSavingOverlay() {
     document.getElementById('saving-overlay').style.display = 'none';
