@@ -447,6 +447,8 @@
         <input type="hidden" id="positionstatus" name="positionstatus">
         <label class="block font-medium mt-2">Date Hired</label>
         <input type="date" id="datehired" name="datehired" class="mt-1 p-2 w-full border rounded">
+        <label class="block font-medium mt-2">Date of Birth</label>
+        <input type="date" id="dateofbirth" name="dateofbirth" class="mt-1 p-2 w-full border rounded">
       </div>
     </form>
     <div class="mt-6 flex justify-end gap-3">
@@ -677,15 +679,15 @@
             </div>
         </div>
         <div class="flex justify-between items-start gap-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-2/3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-2/3">
                 <div id="analytics-headcount-card" class="summary-card bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow">
-    <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
-    <p class="text-3xl font-bold">--</p>
-</div>
- <div id="analytics-vacant-card" class="summary-card bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded-md shadow">
-    <h3 class="font-bold text-lg mb-2">Vacant</h3>
-    <p class="text-3xl font-bold">--</p>
-</div>
+                    <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
+                 <div id="analytics-vacant-card" class="summary-card bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded-md shadow">
+                    <h3 class="font-bold text-lg mb-2">Vacant</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
             </div>
             <div class="flex space-x-2">
                 <button id="analytics-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
@@ -697,9 +699,21 @@
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="chart-card lg:col-span-2">
+      <div class="chart-card">
         <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Gender</h3></div>
         <div class="chart-card-body"><div id="gender_chart_div" style="width: 100%; height: 350px;"></div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Age Generation</h3></div>
+        <div class="chart-card-body">
+            <div id="age_generation_chart_div" style="width: 100%; height: 350px;"></div>
+            <div class="text-xs text-gray-600 mt-4 border-t pt-2">
+                <p>
+                    <b class="italic">Generation Age Ranges:</b>
+                    <i class="ml-2">1946 - 1964 BABY BOOMERS ; 1965 - 1980 GENERATION X ; 1981 - 1996 MILLENNIALS ; 1997 - 2012 GEN Z</i>
+                </p>
+            </div>
+        </div>
       </div>
     </div>
     <div class="mt-8 grid grid-cols-1 gap-8">
@@ -708,7 +722,7 @@
             <div class="chart-card-body"><div id="new_hires_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
     </div>
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div class="chart-card">
             <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Status</h3></div>
             <div class="chart-card-body"><div id="status_chart_div" style="width: 100%; height: 350px;"></div></div>
@@ -776,13 +790,13 @@
         <div class="flex justify-between items-start gap-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-1/2">
                 <div id="resignation-headcount-card" class="summary-card bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-md shadow">
-    <h3 class="font-bold text-lg mb-2">Resigned</h3>
-    <p class="text-3xl font-bold">--</p>
-</div>
-<div id="resignation-hired-card" class="summary-card bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded-md shadow">
-    <h3 class="font-bold text-lg mb-2">Hired</h3>
-    <p class="text-3xl font-bold">--</p>
-</div>
+                    <h3 class="font-bold text-lg mb-2">Resigned</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
+                <div id="resignation-hired-card" class="summary-card bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded-md shadow">
+                    <h3 class="font-bold text-lg mb-2">Hired</h3>
+                    <p class="text-3xl font-bold">--</p>
+                </div>
             </div>
             <div class="flex space-x-2">
                 <button id="resignation-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
@@ -791,6 +805,16 @@
                     Refresh Data
                 </button>
             </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">YTD Turnover Rate</h3></div>
+            <div class="chart-card-body"><div id="ytd_turnover_chart_div" style="width: 100%; height: 350px;"></div></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">YTD Retention Rate</h3></div>
+            <div class="chart-card-body"><div id="retention_rate_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -822,13 +846,9 @@
             <div class="chart-card-header header-resignation"><h3 class="text-xl">Yearly Hires and Leavers</h3></div>
             <div class="chart-card-body"><div id="hires_leavers_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-         <div class="chart-card lg:col-span-2">
-            <div class="chart-card-header header-resignation"><h3 class="text-xl">YTD Turnover Rate</h3></div>
-            <div class="chart-card-body"><div id="ytd_turnover_chart_div" style="width: 100%; height: 350px;"></div></div>
-        </div>
     </div>
   </div>
-
+  
   <!-- Employee Movement View -->
 <div id="employee-movement-view" class="tab-content">
     <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
@@ -1076,13 +1096,13 @@
     analyticsDataLoaded = true;
     
     // Show a loader in each chart div
-    document.getElementById('status_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
-    document.getElementById('contract_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
-    document.getElementById('gender_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
-    document.getElementById('job_group_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
-    document.getElementById('los_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
-    document.getElementById('new_hires_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
-    document.querySelector('#analytics-headcount-card p').textContent = '--';
+    const chartDivs = ['status_chart_div', 'contract_chart_div', 'gender_chart_div', 'job_group_chart_div', 'los_chart_div', 'new_hires_chart_div', 'age_generation_chart_div'];
+    chartDivs.forEach(id => {
+        if (document.getElementById(id)) {
+            document.getElementById(id).innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+        }
+    });
+    if(document.querySelector('#analytics-headcount-card p')) document.querySelector('#analytics-headcount-card p').textContent = '--';
 
     const filters = {
       division: document.getElementById('analytics-division-filter-value').value,
@@ -1097,7 +1117,6 @@
 
     google.script.run
       .withSuccessHandler(function(data) {
-        // --- REVISED: Added noDataHtml variable ---
         const noDataHtml = '<div class="flex justify-center items-center h-full"><p class="text-gray-500">No data available for this selection.</p></div>';
 
         // Update Headcount Cards
@@ -1107,17 +1126,7 @@
         const vacantCard = document.querySelector('#analytics-vacant-card');
         const vacantValue = vacantCard.querySelector('p');
         
-        const divisionFilter = document.getElementById('analytics-division-filter-value').value;
-        const groupFilter = document.getElementById('analytics-group-filter-value').value;
-        const departmentFilter = document.getElementById('analytics-department-filter-value').value;
-        const sectionFilter = document.getElementById('analytics-section-filter-value').value;
-        const jobLevelFilter = document.querySelector('#analytics-joblevel-filter-container .searchable-dropdown-input').value;
-        const posStatusFilter = document.querySelector('#analytics-pos-status-filter-container .searchable-dropdown-input').value;
-        const genderFilter = document.querySelector('#analytics-gender-filter-container .searchable-dropdown-input').value;
-        const jobTitleFilter = document.querySelector('#analytics-jobtitle-filter-container .searchable-dropdown-input').value;
-
-        const allFiltersDefault = divisionFilter === 'all' && groupFilter === 'all' && departmentFilter === 'all' && sectionFilter === 'all' &&
-                                  jobLevelFilter.startsWith('All') && posStatusFilter.startsWith('All') && genderFilter.startsWith('All') && jobTitleFilter.startsWith('All');
+        const allFiltersDefault = Object.values(filters).every(val => String(val).toLowerCase().startsWith('all'));
 
         if (allFiltersDefault) {
           headcountTitle.textContent = 'Total Filled';
@@ -1129,7 +1138,6 @@
           vacantValue.textContent = data.filteredPositionsCount - data.totalHeadcount;
         }
 
-        // --- Helper function to create detailed pie chart labels ---
         const createPieChartData = (counts) => {
             const dataArray = [['Category', 'Count']];
             const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
@@ -1147,7 +1155,7 @@
             return { data: google.visualization.arrayToDataTable(dataArray), isNoData: false, sortedKeys: sortedKeys };
         };
 
-        // --- REVISED: Draw Status Chart ---
+        // Draw Status Chart
         const statusChartDiv = document.getElementById('status_chart_div');
         if (Object.keys(data.statusCounts).length > 0) {
             const statusDataArray = [['Status', 'Count', { role: 'annotation' }]];
@@ -1163,7 +1171,7 @@
             statusChartDiv.innerHTML = noDataHtml;
         }
 
-        // --- REVISED: Draw Contract Type Chart ---
+        // Draw Contract Type Chart
         const contractChartDiv = document.getElementById('contract_chart_div');
         if (Object.keys(data.contractCounts).length > 0) {
             const contractDataArray = [['Contract Type', 'Count', { role: 'annotation' }]];
@@ -1179,7 +1187,7 @@
             contractChartDiv.innerHTML = noDataHtml;
         }
 
-        // --- REVISED: Draw Gender Chart ---
+        // Draw Gender Chart
         const genderChartDiv = document.getElementById('gender_chart_div');
         if (Object.keys(data.genderCounts).length > 0) {
             const genderChartDataResult = createPieChartData(data.genderCounts);
@@ -1187,8 +1195,8 @@
             const genderSlices = {};
             const femaleIndex = genderChartDataResult.sortedKeys.indexOf('Female');
             const maleIndex = genderChartDataResult.sortedKeys.indexOf('Male');
-            if (femaleIndex !== -1) genderSlices[femaleIndex] = { color: '#ef4444' }; // Red
-            if (maleIndex !== -1) genderSlices[maleIndex] = { color: '#3b82f6' };   // Blue
+            if (femaleIndex !== -1) genderSlices[femaleIndex] = { color: '#ef4444' };
+            if (maleIndex !== -1) genderSlices[maleIndex] = { color: '#3b82f6' };
             genderChart.draw(genderChartDataResult.data, { 
                 is3D: true,
                 legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
@@ -1199,7 +1207,7 @@
             genderChartDiv.innerHTML = noDataHtml;
         }
 
-        // --- REVISED: Draw Job Group Chart ---
+        // Draw Job Group Chart
         const jobGroupChartDiv = document.getElementById('job_group_chart_div');
         if (Object.keys(data.jobGroupCounts).length > 0) {
             const jobGroupDataArray = [['Job Group', 'Count', { role: 'annotation' }]];
@@ -1215,7 +1223,7 @@
             jobGroupChartDiv.innerHTML = noDataHtml;
         }
         
-        // --- REVISED: Draw Length of Service Chart ---
+        // Draw Length of Service Chart
         const losChartDiv = document.getElementById('los_chart_div');
         const totalLos = Object.values(data.losCounts).reduce((a, b) => a + b, 0);
         if (totalLos > 0) {
@@ -1236,7 +1244,7 @@
             losChartDiv.innerHTML = noDataHtml;
         }
 
-        // --- REVISED: Draw New Hires Chart ---
+        // Draw New Hires Chart
         const newHiresChartDiv = document.getElementById('new_hires_chart_div');
         if (Object.keys(data.newHiresByMonth).length > 0) {
             const newHiresData = new google.visualization.DataTable();
@@ -1262,6 +1270,29 @@
             });
         } else {
             newHiresChartDiv.innerHTML = noDataHtml;
+        }
+
+        // --- REVISED: Draw Age Generation Chart with consistent styling ---
+        const ageChartDiv = document.getElementById('age_generation_chart_div');
+        if (ageChartDiv) {
+            const totalAges = Object.values(data.ageGenerationCounts).reduce((a, b) => a + b, 0);
+            if (totalAges > 0) {
+                // Use the same helper function as the gender chart
+                const ageChartDataResult = createPieChartData(data.ageGenerationCounts);
+                const ageChart = new google.visualization.PieChart(ageChartDiv);
+                ageChart.draw(ageChartDataResult.data, {
+                    is3D: true,
+                    // Apply the same styling options
+                    legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
+                    pieSliceText: 'none',
+                    tooltip: { text: 'value' },
+                    chartArea: {'width': '100%', 'height': '90%'},
+                    fontName: 'Roboto',
+                    colors: ['#f97316', '#9333ea', '#16a34a', '#3b82f6', '#64748b'] // Orange, Purple, Green, Blue, Gray
+                });
+            } else {
+                ageChartDiv.innerHTML = noDataHtml;
+            }
         }
         
       })
@@ -1342,9 +1373,11 @@
     if (resignationDataLoaded && !forceRefresh) return;
     resignationDataLoaded = true; 
     
-    const chartDivs = ['monthly_turnover_chart_div', 'reason_chart_div', 'resignation_gender_chart_div', 'resignation_contract_chart_div', 'resignation_division_chart_div', 'resignation_job_group_chart_div', 'hires_leavers_chart_div', 'ytd_turnover_chart_div'];
+    const chartDivs = ['monthly_turnover_chart_div', 'reason_chart_div', 'resignation_gender_chart_div', 'resignation_contract_chart_div', 'resignation_division_chart_div', 'resignation_job_group_chart_div', 'hires_leavers_chart_div', 'ytd_turnover_chart_div', 'retention_rate_chart_div'];
     chartDivs.forEach(id => {
-        document.getElementById(id).innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+        if (document.getElementById(id)) {
+            document.getElementById(id).innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+        }
     });
 
     const filters = {
@@ -1361,11 +1394,9 @@
 
     google.script.run
         .withSuccessHandler(function(data) {
-            // --- REVISED: Correctly populate both Resigned and Hired cards ---
             document.querySelector('#resignation-headcount-card p').textContent = data.filteredResignationsCount;
             document.querySelector('#resignation-hired-card p').textContent = data.yearlyHiresLeavers.hires;
 
-            // Helper function to create detailed pie chart labels
             const createPieChartData = (counts) => {
                 const dataArray = [['Category', 'Count']];
                 const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
@@ -1496,12 +1527,25 @@
             if (data.ytdTurnover > 0) {
                 const ytdTurnoverData = google.visualization.arrayToDataTable([
                     ['Year', 'YTD Turnover Rate (%)', { role: 'annotation' }],
-                    [filters.year || new Date().getFullYear().toString(), data.ytdTurnover, data.ytdTurnover.toString() + '%']
+                    [filters.year || new Date().getFullYear().toString(), data.ytdTurnover, data.ytdTurnover.toFixed(2) + '%']
                 ]);
                 const ytdTurnoverChart = new google.visualization.ColumnChart(ytdTurnoverChartDiv);
                 ytdTurnoverChart.draw(ytdTurnoverData, { is3D: true, colors: ['#D946EF'], legend: { position: 'none' }, vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, fontName: 'Roboto' });
             } else {
                 ytdTurnoverChartDiv.innerHTML = noDataHtml;
+            }
+
+            // Draw YTD Retention Rate Chart
+            const retentionRateChartDiv = document.getElementById('retention_rate_chart_div');
+            if (data.retentionRate > 0) {
+                const retentionRateData = google.visualization.arrayToDataTable([
+                    ['Year', 'YTD Retention Rate (%)', { role: 'annotation' }],
+                    [filters.year || new Date().getFullYear().toString(), data.retentionRate, data.retentionRate.toFixed(2) + '%']
+                ]);
+                const retentionRateChart = new google.visualization.ColumnChart(retentionRateChartDiv);
+                retentionRateChart.draw(retentionRateData, { is3D: true, colors: ['#22C55E'], legend: { position: 'none' }, vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, fontName: 'Roboto' });
+            } else {
+                retentionRateChartDiv.innerHTML = noDataHtml;
             }
 
         })
@@ -2665,21 +2709,12 @@ function renderNotifications(data) {
     document.getElementById('startdateinposition').required = false;
     document.getElementById('contract-end-date-wrapper').style.display = 'none';
     document.getElementById('contractenddate').required = false;
-
-    // --- REVISED: Make Date Hired not required by default ---
     document.getElementById('datehired').required = false;
 
-
     let statusOptions = [...(dropdownListData.status || [])];
-    if (!statusOptions.includes('VACANT')) {
-      statusOptions.push('VACANT');
-    }
-    if (!statusOptions.includes('PROMOTION')) {
-      statusOptions.push('PROMOTION');
-    }
-    if (!statusOptions.includes('INTERNAL TRANSFER')) {
-      statusOptions.push('INTERNAL TRANSFER');
-    }
+    if (!statusOptions.includes('VACANT')) statusOptions.push('VACANT');
+    if (!statusOptions.includes('PROMOTION')) statusOptions.push('PROMOTION');
+    if (!statusOptions.includes('INTERNAL TRANSFER')) statusOptions.push('INTERNAL TRANSFER');
     statusOptions.sort();
 
     createSearchableDropdown('jobtitle-dropdown-container', dropdownListData.jobtitle || [], null, null, (sel) => { document.getElementById('jobtitle').value = sel; });
@@ -2707,10 +2742,8 @@ function renderNotifications(data) {
       const effectiveDateWrapper = document.getElementById('effective-date-wrapper');
       const effectiveDateLabel = document.getElementById('effective-date-label');
       const effectiveDateInput = document.getElementById('effectivedate');
-
       const showResignedDate = selUpper === 'RESIGNED';
       const showVacantDate = selUpper === 'VACANT' && document.getElementById('form-mode').value === 'edit';
-      
       const reasonWrapper = document.getElementById('reasonforleaving-wrapper');
       const reasonInput = document.getElementById('reasonforleaving');
 
@@ -2737,6 +2770,7 @@ function renderNotifications(data) {
         document.getElementById('employeeid').value = '';
         document.getElementById('employeename').value = '';
         document.getElementById('datehired').value = '';
+        document.getElementById('dateofbirth').value = '';
         document.getElementById('contractenddate').value = '';
         setSearchableDropdownValue('gender-dropdown-container', '');
       }
@@ -2758,44 +2792,36 @@ function renderNotifications(data) {
                           startDateInput.value = startDate;
                       } else {
                           const dateHired = document.getElementById('datehired').value;
-                          if(dateHired) {
-                             startDateInput.value = dateHired;
-                          }
+                          if(dateHired) startDateInput.value = dateHired;
                       }
                   })
                   .getStartDateForLastMovement(positionId);
           } else {
                const dateHired = document.getElementById('datehired').value;
-               if(dateHired) {
-                  startDateInput.value = dateHired;
-               }
+               if(dateHired) startDateInput.value = dateHired;
           }
       }
       
-      // --- NEW LOGIC: Auto-populate and require Date Hired based on status ---
       const dateHiredInput = document.getElementById('datehired');
-      const statusesRequiringDateHired = ['REGULAR', 'PROBATIONARY', 'PROMOTION', 'INTERNAL TRANSFER', 'LATERAL TRANSFER', 'RESIGNED'];
+      const statusesRequiringDateHired = ['REGULAR', 'PROBATIONARY', 'PROMOTION', 'INTERNAL TRANSFER', 'LATERAL TRANSFER', 'RESIGNED', 'NEW HIRE'];
       if (statusesRequiringDateHired.includes(selUpper)) {
           dateHiredInput.required = true;
           const employeeId = document.getElementById('employeeid').value;
-          if (mode === 'edit' && employeeId) {
+          if (mode === 'edit' && employeeId && !dateHiredInput.value) {
               google.script.run
                   .withSuccessHandler(function(hiredDate) {
-                      if (hiredDate) {
-                          dateHiredInput.value = hiredDate;
-                      }
+                      if (hiredDate) dateHiredInput.value = hiredDate;
                   })
                   .getDateHired(employeeId);
           }
       } else {
           dateHiredInput.required = false;
       }
-
     });
+
     createSearchableDropdown('gender-dropdown-container', ['Male', 'Female'], null, null, (sel) => { document.getElementById('gender').value = sel; });
     createSearchableDropdown('reasonforleaving-dropdown-container', dropdownListData.reasonforleaving || [], null, null, (sel) => { document.getElementById('reasonforleaving').value = sel; });
     createSearchableDropdown('positionstatus-dropdown-container', ['Active', 'Inactive'], null, null, (sel) => { document.getElementById('positionstatus').value = sel; });
-    
     createSearchableDropdown('reportingto-dropdown-container', dropdownListData.managers || [], 'name', 'id', handleManagerSelection);
     createSearchableDropdown('division-dropdown-container', dropdownListData.divisions || [], null, null, (sel) => updateDependentDropdowns('division', sel));
     createSearchableDropdown('group-dropdown-container', [], null, null, (sel) => updateDependentDropdowns('group', sel));
@@ -2818,34 +2844,28 @@ function renderNotifications(data) {
       document.getElementById('employeeid').value = employee.employeeId || '';
       document.getElementById('employeename').value = employee.employeeName || '';
       document.getElementById('datehired').value = employee.dateHired || '';
+      document.getElementById('dateofbirth').value = employee.dateOfBirth || '';
       document.getElementById('contractenddate').value = employee.contractEndDate || '';
-
       setSearchableDropdownValue('reportingto-dropdown-container', employee.managerName || '');
       document.getElementById('reportingtoid').value = employee.managerEmployeeId || '';
       document.getElementById('reportingtoid_display').value = employee.managerEmployeeId || '';
       document.getElementById('reportingto').value = employee.managerName || '';
-
       setSearchableDropdownValue('jobtitle-dropdown-container', employee.jobTitle || '');
       setSearchableDropdownValue('level-dropdown-container', employee.level || '');
       setSearchableDropdownValue('payrolltype-dropdown-container', employee.payrollType || '');
       setSearchableDropdownValue('joblevel-dropdown-container', employee.jobLevel || '');
-      
       setSearchableDropdownValue('contracttype-dropdown-container', employee.contractType || '');
       const contractTypeInput = document.querySelector('#contracttype-dropdown-container .searchable-dropdown-input');
-      if (contractTypeInput) {
-        setTimeout(() => contractTypeInput.dispatchEvent(new Event('change')), 0);
-      }
-      
+      if (contractTypeInput) setTimeout(() => contractTypeInput.dispatchEvent(new Event('change')), 0);
       setSearchableDropdownValue('competency-dropdown-container', employee.competency || '');
       setSearchableDropdownValue('status-dropdown-container', employee.status || '');
       setSearchableDropdownValue('gender-dropdown-container', employee.gender || '');
       setSearchableDropdownValue('positionstatus-dropdown-container', employee.positionStatus || '');
-
       setSearchableDropdownValue('division-dropdown-container', employee.division || '', true);
       updateDependentDropdowns('division', employee.division, employee);
     }
     document.getElementById('employee-modal').style.display = 'flex';
-  }
+}
   
   function syncNewHireDate(event) {
     const status = document.getElementById('status').value;
@@ -2992,6 +3012,7 @@ function showSavingOverlay() {
       gender: document.getElementById('gender').value,
       positionstatus: document.getElementById('positionstatus').value,
       datehired: document.getElementById('datehired').value,
+      dateofbirth: document.getElementById('dateofbirth').value,
       startdateinposition: document.getElementById('startdateinposition').value,
       reasonforleaving: document.getElementById('reasonforleaving').value
     };
@@ -3006,16 +3027,9 @@ function showSavingOverlay() {
       return;
     }
 
-    // --- VALIDATE REQUIRED "REPORTING TO" FIELD ---
-    // This field is mandatory unless the user is creating the very first employee (the root node)
-    // or editing the existing, single root node. It is also not required for VACANT positions.
     if (!data.reportingtoid) {
         const rootNodes = fullEmployeeData.filter(emp => !emp.managerId && emp.employeeId);
-        const isEditingTheSingleRootNode = (
-            data.formmode === 'edit' &&
-            rootNodes.length === 1 &&
-            rootNodes[0].employeeId === data.employeeid
-        );
+        const isEditingTheSingleRootNode = (data.formmode === 'edit' && rootNodes.length === 1 && rootNodes[0].employeeId === data.employeeid);
         const isAddingFirstNode = (data.formmode === 'add' && fullEmployeeData.length === 0);
         if (!isEditingTheSingleRootNode && !isAddingFirstNode && data.status.toUpperCase() !== 'VACANT') {
             alert('The "Reporting To" field is required.');
@@ -3069,7 +3083,7 @@ function showSavingOverlay() {
         alert('Error: ' + error.message);
       })
       .saveEmployeeData(data, mode);
-  }
+}
 
   function deactivateEmployee(positionId) {
     if (!confirm(`Are you sure you want to deactivate position ${positionId}? This will mark it as 'Inactive' and remove it from the active chart.`)) {
