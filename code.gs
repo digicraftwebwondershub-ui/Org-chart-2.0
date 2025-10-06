@@ -1387,12 +1387,11 @@ function deactivatePosition(positionId) {
     const mainSheet = ss.getSheets()[0];
     const positionIdCol = mainSheet.getRange("A:A").getValues();
     const rowIndex = positionIdCol.findIndex(row => row[0] === positionId);
-
-
     if (rowIndex === -1) {
       throw new Error(`Position ID ${positionId} not found for deactivation.`);
     }
-    mainSheet.getRange(rowIndex + 1, 18).setValue('Inactive');
+    // --- REVISED: Changed to uppercase to match data validation rule ---
+    mainSheet.getRange(rowIndex + 1, 18).setValue('INACTIVE');
     SpreadsheetApp.flush();
     logDataChanges();
 
@@ -1783,13 +1782,13 @@ function getUpcomingDues() {
   const mainData = mainSheet.getDataRange().getValues();
   const mainHeaders = mainData.shift();
   const mainDataMap = new Map(mainData.map(row => [row[mainHeaders.indexOf('Position ID')], row]));
-
-
   const nameIndex = mainHeaders.indexOf('Employee Name');
   const contractTypeIndex = mainHeaders.indexOf('Contract Type');
   const contractEndIndex = mainHeaders.indexOf('Contract End Date');
   const statusIndex = mainHeaders.indexOf('Status');
   const posStatusIndex = mainHeaders.indexOf('Position Status');
+  // --- REVISED: Get index for Date Hired ---
+  const dateHiredIndex = mainHeaders.indexOf('Date Hired');
 
 
   mainDataMap.forEach((row, posId) => {
@@ -1814,6 +1813,7 @@ function getUpcomingDues() {
           message
         });
       } else if (days < 0) {
+      
         const daysAgo = Math.abs(days);
         const message = `${employeeName}'s JPRO contract expired ${daysAgo} day${daysAgo !== 1 ? 's' : ''} ago. Please update their status.`;
         overdue.push({
@@ -1823,6 +1823,56 @@ function getUpcomingDues() {
       }
     }
   });
+
+  // --- REVISED LOGIC to use Date Hired as the reference ---
+  if (statusIndex > -1 && dateHiredIndex > -1) {
+    mainData.forEach(row => {
+        const positionStatus = (row[posStatusIndex] || '').toString().trim().toUpperCase();
+        if (positionStatus === 'INACTIVE') return;
+
+        const status = (row[statusIndex] || '').toString().trim().toUpperCase();
+        // --- This now uses the Date Hired column ---
+        const startDate = row[dateHiredIndex];
+        
+        if ((status === 'PROBATIONARY' || status === 'NEW HIRE') && startDate instanceof Date) {
+            const employeeName = row[nameIndex];
+
+            // 3-Month Evaluation Logic
+            const evaluationDate = new Date(startDate.getTime());
+            evaluationDate.setMonth(evaluationDate.getMonth() + 3);
+            evaluationDate.setHours(0, 0, 0, 0);
+
+            const evalTimeDiff = evaluationDate.getTime() - today.getTime();
+            const evalDays = Math.round(evalTimeDiff / (1000 * 60 * 60 * 24));
+
+            if (evalDays >= 0 && evalDays <= 30) {
+                const message = `${employeeName} is due for 3-month evaluation in ${evalDays} day${evalDays !== 1 ? 's' : ''}.`;
+                upcoming.push({ days: evalDays, message });
+            } else if (evalDays < 0) {
+                const evalDaysAgo = Math.abs(evalDays);
+                const message = `${employeeName}'s 3-month evaluation was due ${evalDaysAgo} day${evalDaysAgo !== 1 ? 's' : ''} ago.`;
+                overdue.push({ days: evalDaysAgo, message });
+            }
+
+            // 6-Month Regularization Logic
+            const regularizationDate = new Date(startDate.getTime());
+            regularizationDate.setMonth(regularizationDate.getMonth() + 6);
+            regularizationDate.setHours(0, 0, 0, 0);
+
+            const regTimeDiff = regularizationDate.getTime() - today.getTime();
+            const regDays = Math.round(regTimeDiff / (1000 * 60 * 60 * 24));
+
+            if (regDays >= 0 && regDays <= 30) {
+                const message = `${employeeName} is due for regularization in ${regDays} day${regDays !== 1 ? 's' : ''}.`;
+                upcoming.push({ days: regDays, message });
+            } else if (regDays < 0) {
+                const regDaysAgo = Math.abs(regDays);
+                const message = `${employeeName}'s regularization was due ${regDaysAgo} day${regDaysAgo !== 1 ? 's' : ''} ago. Please update their status.`;
+                overdue.push({ days: regDaysAgo, message });
+            }
+        }
+    });
+  }
 
 
   if (logSheet && logSheet.getLastRow() > 1) {
@@ -1859,14 +1909,16 @@ function getUpcomingDues() {
         const effectiveDate = resignation.date;
         if (effectiveDate instanceof Date) {
           const normalizedEffectiveDate = new Date(effectiveDate.getTime());
-          normalizedEffectiveDate.setHours(0, 0, 0, 0);
+   
+           normalizedEffectiveDate.setHours(0, 0, 0, 0);
           const timeDiff = normalizedEffectiveDate.getTime() - today.getTime();
           const days = Math.round(timeDiff / (1000 * 60 * 60 * 24));
 
 
           if (days >= 0 && days <= 30) {
             const message = `${resignation.name}'s resignation is effective in ${days} day${days !== 1 ? 's' : ''}.`;
-            upcoming.push({
+         
+           upcoming.push({
               days,
               message
             });
@@ -1886,28 +1938,10 @@ function getUpcomingDues() {
 
   const sortedUpcoming = upcoming.sort((a, b) => a.days - b.days).map(d => d.message);
   const sortedOverdue = overdue.sort((a, b) => a.days - b.days).map(d => d.message);
-
-
   return {
     upcoming: sortedUpcoming,
     overdue: sortedOverdue
   };
-}
-
-/**
- * A robust helper function to parse various date formats.
- * @param {any} dateInput The value from the spreadsheet cell.
- * @returns {Date|null} A valid Date object or null if parsing fails.
- */
-function _parseDate(dateInput) {
-  if (!dateInput) return null;
-  if (dateInput instanceof Date && !isNaN(dateInput)) return dateInput;
-  
-  // Try creating a date from a string or number
-  const date = new Date(dateInput);
-  if (!isNaN(date)) return date;
-  
-  return null; // Return null if input is not a valid date
 }
 
 
@@ -1917,13 +1951,13 @@ function getResignationData(filters) {
   const resignationSheet = ss.getSheetByName('Resignation Data');
 
   const emptyResult = { reasonCounts: {}, resignationGenderCounts: {}, resignationContractCounts: {}, resignationDivisionCounts: {}, resignationJobGroupCounts: {}, monthlyTurnover: [], yearlyHiresLeavers: { hires: 0, leavers: 0 }, ytdTurnover: 0, overallHeadcount: 0, filteredResignationsCount: 0 };
-
   if (!mainSheet || mainSheet.getLastRow() < 2) return emptyResult;
 
   const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
   const mainHeaders = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
-  const dateHiredIndex = mainHeaders.indexOf('Date Hired');
-  const empIdIndex = mainHeaders.indexOf('Employee ID');
+  const mainHeaderMap = new Map(mainHeaders.map((h, i) => [h.trim(), i]));
+  const dateHiredIndex = mainHeaderMap.get('Date Hired');
+  const empIdIndex = mainHeaderMap.get('Employee ID');
   const overallHeadcount = mainData.filter(row => row[empIdIndex]).length;
 
   if (!resignationSheet || resignationSheet.getLastRow() < 2) {
@@ -1936,25 +1970,22 @@ function getResignationData(filters) {
 
   const jobGroupMapping = { 1: 'Executives', 2: 'Director', 3: 'Managerial', 4: 'Supervisory', 5: 'Rank & File', 6: 'Jobcon' };
   const selectedYear = (filters.year && filters.year !== 'All Years') ? parseInt(filters.year) : new Date().getFullYear();
+  const monthIndex = (filters.month && !String(filters.month).toLowerCase().startsWith('all')) ? new Date(Date.parse(filters.month +" 1, 2012")).getMonth() : -1;
 
   const filteredResignations = resignationData.filter(row => {
     const resDate = new Date(row[resHeaderMap.get('Resignation Date')]);
     if (filters.year && !String(filters.year).toLowerCase().startsWith('all') && resDate.getFullYear() != filters.year) return false;
-    if (filters.month && !String(filters.month).toLowerCase().startsWith('all')) {
-        const monthIndex = new Date(Date.parse(filters.month +" 1, 2012")).getMonth();
-        if (resDate.getMonth() != monthIndex) return false;
-    }
-    // Apply other filters
+    if (monthIndex > -1 && resDate.getMonth() !== monthIndex) return false;
     if (filters.division && !String(filters.division).toLowerCase().startsWith('all') && row[resHeaderMap.get('Division')] !== filters.division) return false;
     if (filters.group && !String(filters.group).toLowerCase().startsWith('all') && row[resHeaderMap.get('Group')] !== filters.group) return false;
     if (filters.department && !String(filters.department).toLowerCase().startsWith('all') && row[resHeaderMap.get('Department')] !== filters.department) return false;
     if (filters.section && !String(filters.section).toLowerCase().startsWith('all') && row[resHeaderMap.get('Section')] !== filters.section) return false;
-    if (filters.jobLevel && !String(filters.jobLevel).toLowerCase().startsWith('all') && row[resHeaderMap.get('Job Level')] !== filters.jobLevel) return false;
-    if (filters.gender && !String(filters.gender).toLowerCase().startsWith('all') && row[resHeaderMap.get('Gender')] !== filters.gender) return false;
     if (filters.jobTitle && !String(filters.jobTitle).toLowerCase().startsWith('all') && row[resHeaderMap.get('Job Title')] !== filters.jobTitle) return false;
+    if (filters.jobLevel && !String(filters.jobLevel).toLowerCase().startsWith('all') && (row[resHeaderMap.get('Job Level')] || '').toString().trim().toLowerCase() !== filters.jobLevel.toLowerCase()) return false;
+    if (filters.gender && !String(filters.gender).toLowerCase().startsWith('all') && (row[resHeaderMap.get('Gender')] || '').toString().trim().toLowerCase() !== filters.gender.toLowerCase()) return false;
     return true;
   });
-
+  
   const reasonCounts = {}, resignationGenderCounts = {}, resignationContractCounts = {}, resignationDivisionCounts = {}, resignationJobGroupCounts = {};
   filteredResignations.forEach(row => {
     reasonCounts[row[resHeaderMap.get('Reason for Leaving')] || 'Unknown'] = (reasonCounts[row[resHeaderMap.get('Reason for Leaving')] || 'Unknown'] || 0) + 1;
@@ -1964,16 +1995,32 @@ function getResignationData(filters) {
     resignationJobGroupCounts[jobGroupMapping[row[resHeaderMap.get('Level')]] || 'Unknown'] = (resignationJobGroupCounts[jobGroupMapping[row[resHeaderMap.get('Level')]] || 'Unknown'] || 0) + 1;
   });
 
-  const leaversThisYear = resignationData.filter(r => new Date(r[resHeaderMap.get('Resignation Date')]).getFullYear() === selectedYear);
-  const hiresThisYear = mainData.filter(r => r[dateHiredIndex] && new Date(r[dateHiredIndex]).getFullYear() === selectedYear);
+  // --- REVISED: Hires and Leavers now respect all filters ---
+  const hiresThisYear = mainData.filter(r => {
+      if (!r[dateHiredIndex]) return false;
+      const hiredDate = new Date(r[dateHiredIndex]);
+      if (hiredDate.getFullYear() !== selectedYear) return false;
+      if (monthIndex > -1 && hiredDate.getMonth() !== monthIndex) return false;
+      // Apply other filters to hires
+      if (filters.division && !String(filters.division).toLowerCase().startsWith('all') && r[mainHeaderMap.get('Division')] !== filters.division) return false;
+      if (filters.group && !String(filters.group).toLowerCase().startsWith('all') && r[mainHeaderMap.get('Group')] !== filters.group) return false;
+      if (filters.department && !String(filters.department).toLowerCase().startsWith('all') && r[mainHeaderMap.get('Department')] !== filters.department) return false;
+      if (filters.section && !String(filters.section).toLowerCase().startsWith('all') && r[mainHeaderMap.get('Section')] !== filters.section) return false;
+      if (filters.jobLevel && !String(filters.jobLevel).toLowerCase().startsWith('all') && (r[mainHeaderMap.get('Job Level')] || '').toString().trim().toLowerCase() !== filters.jobLevel.toLowerCase()) return false;
+      if (filters.gender && !String(filters.gender).toLowerCase().startsWith('all') && (r[mainHeaderMap.get('Gender')] || '').toString().trim().toLowerCase() !== filters.gender.toLowerCase()) return false;
+      return true;
+  });
+  
+  // Leavers are already filtered, so we just use that directly
+  const leaversThisYear = filteredResignations;
 
   const endOfYearHeadcount = mainData.length;
   const startOfYearHeadcount = endOfYearHeadcount - hiresThisYear.length + leaversThisYear.length;
   const averageHeadcount = (startOfYearHeadcount + endOfYearHeadcount) / 2;
-
   const ytdTurnover = averageHeadcount > 0 ? (leaversThisYear.length / averageHeadcount) * 100 : 0;
-
+  
   const monthlyTurnover = Array(12).fill(null).map((_, month) => {
+    // This now correctly calculates separations from the filtered data
     const monthlySeparations = leaversThisYear.filter(r => new Date(r[resHeaderMap.get('Resignation Date')]).getMonth() === month).length;
     const monthlyRate = averageHeadcount > 0 ? (monthlySeparations / averageHeadcount) * 100 : 0;
     return {
@@ -1982,7 +2029,7 @@ function getResignationData(filters) {
       rate: parseFloat(monthlyRate.toFixed(2))
     };
   });
-
+  
   return {
     reasonCounts,
     resignationGenderCounts,
@@ -2001,7 +2048,6 @@ function getAnalyticsData(filters) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const mainSheet = spreadsheet.getSheets()[0];
   const previousSheet = spreadsheet.getSheetByName('Previous Headcount');
-
   let headers = [];
   let mainData = [];
   if (mainSheet.getLastRow() >= 1) {
@@ -2020,7 +2066,6 @@ function getAnalyticsData(filters) {
   const statusCounts = {};
   const contractCounts = {};
   let totalHeadcount = 0;
-
   // 1. Filter main data based on user's selections
   if (mainData.length > 0) {
     const headerMap = {
@@ -2035,12 +2080,12 @@ function getAnalyticsData(filters) {
       status: headers.indexOf('Status'),
       contractType: headers.indexOf('Contract Type')
     };
-
     filteredData = mainData.filter(row => {
       return Object.keys(filters).every(key => {
         if (!filters[key] || String(filters[key]).toLowerCase().startsWith('all')) return true;
         const colIndex = headerMap[key];
-        return colIndex !== -1 && (row[colIndex] || '').toString().trim() === filters[key];
+        // --- THIS IS THE CORRECTED LINE ---
+        return colIndex !== -1 && (row[colIndex] || '').toString().trim().toLowerCase() === filters[key].toLowerCase();
       });
     });
   }
@@ -2051,19 +2096,16 @@ function getAnalyticsData(filters) {
   const losCounts = {
     '< 1 Year': 0, '1-3 Years': 0, '3-5 Years': 0, '5-10 Years': 0, '10+ Years': 0
   };
-  
   const jobGroupMapping = {
     1: 'Executives', 2: 'Director', 3: 'Managerial',
     4: 'Supervisory', 5: 'Rank & File', 6: 'Jobcon'
   };
-
   const statusIndex = headers.indexOf('Status');
   const contractIndex = headers.indexOf('Contract Type');
   const genderIndex = headers.indexOf('Gender');
   const levelIndex = headers.indexOf('Level');
   const hiredIndex = headers.indexOf('Date Hired');
   const today = new Date();
-
   filteredData.forEach(row => {
     // Only count as "headcount" if the position is filled
     if (row[empIdIndex]) {
@@ -2076,6 +2118,7 @@ function getAnalyticsData(filters) {
       contractCounts[contract] = (contractCounts[contract] || 0) + 1;
       
       const rawGender = (row[genderIndex] || 'Unknown').toString().trim().toLowerCase();
+    
       let gender;
       if (rawGender === 'male') {
         gender = 'Male';
@@ -2087,10 +2130,12 @@ function getAnalyticsData(filters) {
       genderCounts[gender] = (genderCounts[gender] || 0) + 1;
       
       const level = row[levelIndex];
+    
       const jobGroup = jobGroupMapping[level] || 'Unknown';
       jobGroupCounts[jobGroup] = (jobGroupCounts[jobGroup] || 0) + 1;
 
-      const hiredDate = row[hiredIndex] ? new Date(row[hiredIndex]) : null;
+      const hiredDate = row[hiredIndex] ?
+new Date(row[hiredIndex]) : null;
       if (hiredDate && !isNaN(hiredDate)) {
         const years = (today - hiredDate) / (1000 * 60 * 60 * 24 * 365.25);
         if (years < 1) losCounts['< 1 Year']++;
@@ -2104,18 +2149,11 @@ function getAnalyticsData(filters) {
 
 
   // 3. Headcount Trend Data
-  // This section reads the 'Previous Headcount' sheet to build a historical trend.
-  // It expects a specific format generated by the 'takeHeadcountSnapshot' function:
-  // - Columns are added dynamically for each snapshot, e.g., "Jan 2023 Filled", "Jan 2023 Vacant".
-  // - It identifies these columns by looking for the " Filled" suffix.
-  // - To avoid double-counting, it only aggregates rows that represent a division total.
-  //   These are identified as rows where the 'Group', 'Department', and 'Section' columns (2, 3, 4) are blank.
   const trendData = [];
   if (previousSheet && previousSheet.getLastRow() > 1) {
     const prevData = previousSheet.getDataRange().getValues();
     const prevHeaders = prevData.shift();
     const divIdx = 0, grpIdx = 1, dptIdx = 2, secIdx = 3;
-
     for (let i = 0; i < prevHeaders.length; i++) {
       const header = prevHeaders[i];
       if (header.includes(' Filled')) {
@@ -2133,7 +2171,6 @@ function getAnalyticsData(filters) {
           const divisionFilter = (filters.division && !String(filters.division).toLowerCase().startsWith('all')) ? filters.division : null;
 
           let targetRow = null;
-
           if (sectionFilter) {
               targetRow = prevData.find(r => r[secIdx] === sectionFilter && r[dptIdx] === departmentFilter && r[grpIdx] === groupFilter && r[divIdx] === divisionFilter);
           } else if (departmentFilter) {
@@ -2176,7 +2213,6 @@ function getAnalyticsData(filters) {
     
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
     logData.forEach(row => {
       if ((row[logStatusIndex] || '').toUpperCase() === 'NEW HIRE') {
         const eventDate = row[logEffectiveDateIndex] || row[logTimestampIndex];
@@ -2185,10 +2221,11 @@ function getAnalyticsData(filters) {
           const monthYear = Utilities.formatDate(date, Session.getScriptTimeZone(), 'MMM yyyy');
           newHiresByMonth[monthYear] = (newHiresByMonth[monthYear] || 0) + 1;
         }
-      }
+   
+       }
     });
   }
-
+getAnalyticsData
   return {
     statusCounts: statusCounts,
     contractCounts: contractCounts,
@@ -2386,5 +2423,103 @@ function getJdFileUrl(positionId, employeeId, jobTitle, type) {
   } catch (e) {
     Logger.log(`Error in getJdFileUrl: ${e.toString()}`);
     return `Error: ${e.message}`;
+  }
+}
+
+function getStartDateForLastMovement(positionId) {
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const logSheet = spreadsheet.getSheetByName('change_log_sheet');
+    if (!logSheet || logSheet.getLastRow() < 2) {
+      return null;
+    }
+
+    const logData = logSheet.getDataRange().getValues();
+    const headers = logData.shift();
+    const posIdIndex = headers.indexOf('Position ID');
+    const statusIndex = headers.indexOf('Status');
+    const effectiveDateIndex = headers.indexOf('Effective Date');
+    const timestampIndex = headers.indexOf('Change Timestamp');
+
+    if ([posIdIndex, statusIndex, effectiveDateIndex, timestampIndex].includes(-1)) {
+      return null; // A required column is missing
+    }
+
+    const movementStatuses = ['PROMOTION', 'INTERNAL TRANSFER', 'LATERAL TRANSFER', 'FILLED VACANCY', 'NEW HIRE', 'PROBATIONARY'];
+
+    const relevantEvents = logData
+      .filter(row => row[posIdIndex] === positionId && movementStatuses.includes((row[statusIndex] || '').toUpperCase()))
+      .map(row => new Date(row[effectiveDateIndex] || row[timestampIndex]))
+      .filter(date => !isNaN(date.getTime()));
+
+    if (relevantEvents.length === 0) {
+      return null;
+    }
+
+    // Sort descending to get the most recent date first
+    relevantEvents.sort((a, b) => b.getTime() - a.getTime());
+
+    return Utilities.formatDate(relevantEvents[0], Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+  } catch (e) {
+    Logger.log(`Error in getStartDateForLastMovement: ${e.toString()}`);
+    return null;
+  }
+}
+
+function getDateHired(employeeId) {
+  if (!employeeId) {
+    return null;
+  }
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const mainSheet = ss.getSheets()[0];
+    if (mainSheet.getLastRow() < 2) {
+      return null;
+    }
+    const data = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+    const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+    const empIdIndex = headers.indexOf('Employee ID');
+    const dateHiredIndex = headers.indexOf('Date Hired');
+
+    if (empIdIndex === -1 || dateHiredIndex === -1) {
+      return null;
+    }
+
+    const employeeRow = data.find(row => (row[empIdIndex] || '').toString().trim() === employeeId.trim());
+
+    if (employeeRow && employeeRow[dateHiredIndex] instanceof Date) {
+      return Utilities.formatDate(employeeRow[dateHiredIndex], Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    }
+    return null;
+  } catch (e) {
+    Logger.log(`Error in getDateHired: ${e.toString()}`);
+    return null;
+  }
+}
+
+function reactivatePosition(positionId) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const mainSheet = ss.getSheets()[0];
+    const positionIdCol = mainSheet.getRange("A:A").getValues();
+    const rowIndex = positionIdCol.findIndex(row => row[0] === positionId);
+
+    if (rowIndex === -1) {
+      throw new Error(`Position ID ${positionId} not found for reactivation.`);
+    }
+    // --- REVISED: Changed to uppercase to match data validation rule ---
+    mainSheet.getRange(rowIndex + 1, 18).setValue('ACTIVE'); 
+    SpreadsheetApp.flush();
+    logDataChanges(); // Log this change to keep history accurate
+
+    return "Position reactivated successfully.";
+  } catch (e) {
+    Logger.log('Error in reactivatePosition: ' + e.message + ' Stack: ' + e.stack);
+    throw new Error('Failed to reactivate position. ' + e.message);
+  } finally {
+    lock.releaseLock();
   }
 }
