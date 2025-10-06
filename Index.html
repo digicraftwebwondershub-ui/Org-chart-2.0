@@ -253,6 +253,24 @@
       max-height: 90vh;
       overflow-y: auto;
     }
+    /* ADD THIS NEW CSS RULE */
+    .inactive-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(107, 114, 128, 0.75); /* A semi-transparent gray */
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+      border-radius: 6px; /* Match the card's border-radius */
+      z-index: 5;
+      pointer-events: none; /* Allows mouse events to pass through to the card */
+    }
     .searchable-dropdown {
       position: relative;
     }
@@ -299,6 +317,42 @@
     }
     .tab-content.active {
       display: block;
+    }
+    .chart-card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      overflow: hidden; /* This is key to keep the rounded corners with the header strip */
+      transition: all 0.2s ease-in-out;
+    }
+
+    .chart-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-card-header {
+      padding: 12px 24px;
+      color: white;
+      font-weight: bold;
+    }
+
+    .chart-card-body {
+      padding: 24px;
+    }
+
+/* Color themes for each tab */
+.header-demographics { background-color: #22c55e; } /* Green */
+.header-resignation { background-color: #ef4444; } /* Light Red */
+.header-movement { background-color: #0d9488; } /* Teal */
+
+.summary-card {
+      transition: all 0.2s ease-in-out;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
   </style>
 </head>
@@ -450,7 +504,11 @@
 <div id="app" class="p-4 sm:p-6 md:p-8">
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold text-slate-800">Interactive Organizational Chart</h1>
-    <div class="flex space-x-2">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center">
+        <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+        <label for="show-inactive-checkbox" class="ml-2 block text-sm font-medium text-gray-700">Show Inactive Positions</label>
+      </div>
       <button id="generate-masterlist-btn" onclick="generateMasterlist()" class="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700">Generate Masterlist</button>
       <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
     </div>
@@ -620,14 +678,14 @@
         </div>
         <div class="flex justify-between items-start gap-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-2/3">
-                <div id="analytics-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow">
-                    <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
-                    <p class="text-3xl font-bold">--</p>
-                </div>
-                 <div id="analytics-vacant-card" class="bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded-md shadow">
-                    <h3 class="font-bold text-lg mb-2">Vacant</h3>
-                    <p class="text-3xl font-bold">--</p>
-                </div>
+                <div id="analytics-headcount-card" class="summary-card bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow">
+    <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
+    <p class="text-3xl font-bold">--</p>
+</div>
+ <div id="analytics-vacant-card" class="summary-card bg-gray-100 border-l-4 border-gray-500 text-gray-800 p-4 rounded-md shadow">
+    <h3 class="font-bold text-lg mb-2">Vacant</h3>
+    <p class="text-3xl font-bold">--</p>
+</div>
             </div>
             <div class="flex space-x-2">
                 <button id="analytics-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
@@ -639,39 +697,39 @@
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-        <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Gender</h3>
-        <div id="gender_chart_div" style="width: 100%; height: 400px;"></div>
+      <div class="chart-card lg:col-span-2">
+        <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Gender</h3></div>
+        <div class="chart-card-body"><div id="gender_chart_div" style="width: 100%; height: 350px;"></div></div>
       </div>
     </div>
     <div class="mt-8 grid grid-cols-1 gap-8">
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Monthly New Hires (Last 12 Months)</h3>
-            <div id="new_hires_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-demographics"><h3 class="text-xl">Monthly New Hires (Last 12 Months)</h3></div>
+            <div class="chart-card-body"><div id="new_hires_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
     </div>
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Status</h3>
-            <div id="status_chart_div" style="width: 100%; height: 400px;"></div>
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+        <div class="chart-card">
+            <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Status</h3></div>
+            <div class="chart-card-body"><div id="status_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Contract Type</h3>
-            <div id="contract_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Contract Type</h3></div>
+            <div class="chart-card-body"><div id="contract_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Job Group</h3>
-            <div id="job_group_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Job Group</h3></div>
+            <div class="chart-card-body"><div id="job_group_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Employees by Length of Service</h3>
-            <div id="los_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-demographics"><h3 class="text-xl">Employees by Length of Service</h3></div>
+            <div class="chart-card-body"><div id="los_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
     </div>
   </div>
 
   <!-- Resignation View -->
-  <div id="resignation-view" class="tab-content">
+<div id="resignation-view" class="tab-content">
     <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
         <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
             <div>
@@ -716,9 +774,15 @@
             </div>
         </div>
         <div class="flex justify-between items-start gap-4">
-            <div id="resignation-headcount-card" class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-800 p-4 rounded-md shadow w-1/3">
-                <h3 class="font-bold text-lg mb-2">Total Headcount</h3>
-                <p class="text-3xl font-bold">--</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-1/2">
+                <div id="resignation-headcount-card" class="summary-card bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-md shadow">
+    <h3 class="font-bold text-lg mb-2">Resigned</h3>
+    <p class="text-3xl font-bold">--</p>
+</div>
+<div id="resignation-hired-card" class="summary-card bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded-md shadow">
+    <h3 class="font-bold text-lg mb-2">Hired</h3>
+    <p class="text-3xl font-bold">--</p>
+</div>
             </div>
             <div class="flex space-x-2">
                 <button id="resignation-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
@@ -730,43 +794,43 @@
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Monthly Separations</h3>
-            <div id="monthly_turnover_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card lg:col-span-2">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">Monthly Separations</h3></div>
+            <div class="chart-card-body"><div id="monthly_turnover_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Reason for Leaving</h3>
-            <div id="reason_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">Reason for Leaving</h3></div>
+            <div class="chart-card-body"><div id="reason_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Gender</h3>
-            <div id="resignation_gender_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">Resignation by Gender</h3></div>
+            <div class="chart-card-body"><div id="resignation_gender_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Contract Type</h3>
-            <div id="resignation_contract_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">Resignation by Contract Type</h3></div>
+            <div class="chart-card-body"><div id="resignation_contract_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Division</h3>
-            <div id="resignation_division_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">Resignation by Division</h3></div>
+            <div class="chart-card-body"><div id="resignation_division_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Resignation by Job Group</h3>
-            <div id="resignation_job_group_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">Resignation by Job Group</h3></div>
+            <div class="chart-card-body"><div id="resignation_job_group_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Yearly Hires and Leavers</h3>
-            <div id="hires_leavers_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">Yearly Hires and Leavers</h3></div>
+            <div class="chart-card-body"><div id="hires_leavers_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-         <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">YTD Turnover Rate</h3>
-            <div id="ytd_turnover_chart_div" style="width: 100%; height: 400px;"></div>
+         <div class="chart-card lg:col-span-2">
+            <div class="chart-card-header header-resignation"><h3 class="text-xl">YTD Turnover Rate</h3></div>
+            <div class="chart-card-body"><div id="ytd_turnover_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
     </div>
   </div>
 
   <!-- Employee Movement View -->
-  <div id="employee-movement-view" class="tab-content">
+<div id="employee-movement-view" class="tab-content">
     <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
         <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
             <div>
@@ -810,30 +874,42 @@
                 <div id="movement-month-filter-container" class="searchable-dropdown mt-1"></div>
             </div>
         </div>
-        <div class="flex justify-end items-start gap-4">
-            <button id="movement-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
-            <button onclick="drawEmployeeMovementCharts(true)" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center">
-                <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
-                Refresh Data
-            </button>
+        <div class="flex justify-between items-start gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-1/2">
+                <div id="movement-promoted-card" class="summary-card bg-green-100 border-l-4 border-green-500 text-green-800 p-4 rounded-md shadow">
+    <h3 class="font-bold text-lg mb-2">Promoted</h3>
+    <p class="text-3xl font-bold">--</p>
+</div>
+ <div id="movement-transferred-card" class="summary-card bg-purple-100 border-l-4 border-purple-500 text-purple-800 p-4 rounded-md shadow">
+    <h3 class="font-bold text-lg mb-2">Transferred</h3>
+    <p class="text-3xl font-bold">--</p>
+</div>
+            </div>
+            <div class="flex space-x-2">
+                <button id="movement-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
+                <button onclick="drawEmployeeMovementCharts(true)" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold flex items-center">
+                    <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
+                    Refresh Data
+                </button>
+            </div>
         </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Promotions by Department</h3>
-            <div id="promo_by_dept_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-movement"><h3 class="text-xl">Promotions by Department</h3></div>
+            <div class="chart-card-body"><div id="promo_by_dept_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Transfers by Department</h3>
-            <div id="transfer_by_dept_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-movement"><h3 class="text-xl">Transfers by Department</h3></div>
+            <div class="chart-card-body"><div id="transfer_by_dept_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Promotion Rate</h3>
-            <div id="promotion_rate_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-movement"><h3 class="text-xl">Promotion Rate</h3></div>
+            <div class="chart-card-body"><div id="promotion_rate_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Transfer Rate</h3>
-            <div id="transfer_rate_chart_div" style="width: 100%; height: 400px;"></div>
+        <div class="chart-card">
+            <div class="chart-card-header header-movement"><h3 class="text-xl">Transfer Rate</h3></div>
+            <div class="chart-card-body"><div id="transfer_rate_chart_div" style="width: 100%; height: 350px;"></div></div>
         </div>
     </div>
   </div>
@@ -1005,6 +1081,7 @@
     document.getElementById('gender_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('job_group_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.getElementById('los_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
+    document.getElementById('new_hires_chart_div').innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
     document.querySelector('#analytics-headcount-card p').textContent = '--';
 
     const filters = {
@@ -1020,6 +1097,9 @@
 
     google.script.run
       .withSuccessHandler(function(data) {
+        // --- REVISED: Added noDataHtml variable ---
+        const noDataHtml = '<div class="flex justify-center items-center h-full"><p class="text-gray-500">No data available for this selection.</p></div>';
+
         // Update Headcount Cards
         const headcountCard = document.querySelector('#analytics-headcount-card');
         const headcountTitle = headcountCard.querySelector('h3');
@@ -1067,128 +1147,122 @@
             return { data: google.visualization.arrayToDataTable(dataArray), isNoData: false, sortedKeys: sortedKeys };
         };
 
-        // REVISED: Draw Status Chart (3D Column)
-        const statusDataArray = [['Status', 'Count', { role: 'annotation' }]];
-        if(Object.keys(data.statusCounts).length) {
+        // --- REVISED: Draw Status Chart ---
+        const statusChartDiv = document.getElementById('status_chart_div');
+        if (Object.keys(data.statusCounts).length > 0) {
+            const statusDataArray = [['Status', 'Count', { role: 'annotation' }]];
             Object.entries(data.statusCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => statusDataArray.push([key, value, value]));
+            const statusData = google.visualization.arrayToDataTable(statusDataArray);
+            const statusChart = new google.visualization.ColumnChart(statusChartDiv);
+            statusChart.draw(statusData, {
+                is3D: true, legend: { position: 'none' }, vAxis: { minValue: 0 },
+                annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+                colors: ['#98FB98'], fontName: 'Roboto'
+            });
         } else {
-            statusDataArray.push(['No Data', 0, 0]);
+            statusChartDiv.innerHTML = noDataHtml;
         }
-        const statusData = google.visualization.arrayToDataTable(statusDataArray);
-        const statusChart = new google.visualization.ColumnChart(document.getElementById('status_chart_div'));
-        statusChart.draw(statusData, {
-            is3D: true,
-            legend: { position: 'none' },
-            vAxis: { minValue: 0 },
-            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
-            colors: ['#98FB98'],
-            fontName: 'Roboto'
-        });
 
-        // REVISED: Draw Contract Type Chart (3D Column)
-        const contractDataArray = [['Contract Type', 'Count', { role: 'annotation' }]];
-        if(Object.keys(data.contractCounts).length) {
+        // --- REVISED: Draw Contract Type Chart ---
+        const contractChartDiv = document.getElementById('contract_chart_div');
+        if (Object.keys(data.contractCounts).length > 0) {
+            const contractDataArray = [['Contract Type', 'Count', { role: 'annotation' }]];
             Object.entries(data.contractCounts).forEach(([key, value]) => contractDataArray.push([key, value, value]));
+            const contractData = google.visualization.arrayToDataTable(contractDataArray);
+            const contractChart = new google.visualization.ColumnChart(contractChartDiv);
+            contractChart.draw(contractData, { 
+                is3D: true, legend: { position: 'none' }, vAxis: { minValue: 0 },
+                annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+                colors: ['#008080'], fontName: 'Roboto'
+            });
         } else {
-            contractDataArray.push(['No Data', 0, 0]);
+            contractChartDiv.innerHTML = noDataHtml;
         }
-        const contractData = google.visualization.arrayToDataTable(contractDataArray);
-        const contractChart = new google.visualization.ColumnChart(document.getElementById('contract_chart_div'));
-        contractChart.draw(contractData, { 
-            is3D: true,
-            legend: { position: 'none' },
-            vAxis: { minValue: 0 },
-            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
-            colors: ['#008080'],
-            fontName: 'Roboto'
-        });
 
-        // NEW: Draw Gender Chart (3D Pie)
-        const genderChartDataResult = createPieChartData(data.genderCounts);
-        const genderChart = new google.visualization.PieChart(document.getElementById('gender_chart_div'));
-        const genderSlices = {};
-        if (genderChartDataResult.isNoData) {
-            genderSlices[0] = { color: 'transparent', textStyle: { color: 'transparent' } };
-        } else {
+        // --- REVISED: Draw Gender Chart ---
+        const genderChartDiv = document.getElementById('gender_chart_div');
+        if (Object.keys(data.genderCounts).length > 0) {
+            const genderChartDataResult = createPieChartData(data.genderCounts);
+            const genderChart = new google.visualization.PieChart(genderChartDiv);
+            const genderSlices = {};
             const femaleIndex = genderChartDataResult.sortedKeys.indexOf('Female');
             const maleIndex = genderChartDataResult.sortedKeys.indexOf('Male');
             if (femaleIndex !== -1) genderSlices[femaleIndex] = { color: '#ef4444' }; // Red
             if (maleIndex !== -1) genderSlices[maleIndex] = { color: '#3b82f6' };   // Blue
-        }
-        genderChart.draw(genderChartDataResult.data, { 
-            is3D: true,
-            legend: { 
-                position: 'labeled',
-                textStyle: { color: 'black', bold: true, italic: true }
-            },
-            pieSliceText: 'none',
-            tooltip: { text: 'value' },
-            chartArea: {'width': '100%', 'height': '90%'},
-            slices: genderSlices,
-            fontName: 'Roboto'
-        });
-
-        // NEW: Draw Job Group Chart (3D Column)
-        const jobGroupDataArray = [['Job Group', 'Count', { role: 'annotation' }]];
-        if(Object.keys(data.jobGroupCounts).length) {
-            Object.entries(data.jobGroupCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => jobGroupDataArray.push([key, value, value]));
+            genderChart.draw(genderChartDataResult.data, { 
+                is3D: true,
+                legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
+                pieSliceText: 'none', tooltip: { text: 'value' },
+                chartArea: {'width': '100%', 'height': '90%'}, slices: genderSlices, fontName: 'Roboto'
+            });
         } else {
-            jobGroupDataArray.push(['No Data', 0, 0]);
+            genderChartDiv.innerHTML = noDataHtml;
         }
-        const jobGroupData = google.visualization.arrayToDataTable(jobGroupDataArray);
-        const jobGroupChart = new google.visualization.ColumnChart(document.getElementById('job_group_chart_div'));
-        jobGroupChart.draw(jobGroupData, { 
-            is3D: true,
-            legend: { position: 'none' },
-            vAxis: { minValue: 0 },
-            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
-            colors: ['#FFD1DC'],
-            fontName: 'Roboto'
-        });
-        
-        // NEW: Draw Length of Service Chart (3D Column)
-        const losOrder = ['< 1 Year', '1-3 Years', '3-5 Years', '5-10 Years', '10+ Years'];
-        const losDataArray = [['Length of Service', 'Count', { role: 'annotation' }]];
-        losOrder.forEach(key => {
-            const value = data.losCounts[key] || 0;
-            losDataArray.push([key, value, value]);
-        });
-        const losData = google.visualization.arrayToDataTable(losDataArray);
-        const losChart = new google.visualization.ColumnChart(document.getElementById('los_chart_div'));
-        losChart.draw(losData, { 
-            is3D: true,
-            legend: { position: 'none' },
-            vAxis: { minValue: 0 },
-            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
-            colors: ['#FFDB58'],
-            fontName: 'Roboto'
-        });
 
-        // Draw New Hires Chart
-        const newHiresData = new google.visualization.DataTable();
-        newHiresData.addColumn('string', 'Month');
-        newHiresData.addColumn('number', 'New Hires');
-        newHiresData.addColumn({ type: 'number', role: 'annotation' });
-        const monthOrder = Array.from({length: 12}, (_, i) => {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i, 1); // Set to the first day of the month
-            return d.toLocaleString('default', { month: 'short' }) + ' ' + d.getFullYear();
-        }).reverse();
+        // --- REVISED: Draw Job Group Chart ---
+        const jobGroupChartDiv = document.getElementById('job_group_chart_div');
+        if (Object.keys(data.jobGroupCounts).length > 0) {
+            const jobGroupDataArray = [['Job Group', 'Count', { role: 'annotation' }]];
+            Object.entries(data.jobGroupCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => jobGroupDataArray.push([key, value, value]));
+            const jobGroupData = google.visualization.arrayToDataTable(jobGroupDataArray);
+            const jobGroupChart = new google.visualization.ColumnChart(jobGroupChartDiv);
+            jobGroupChart.draw(jobGroupData, { 
+                is3D: true, legend: { position: 'none' }, vAxis: { minValue: 0 },
+                annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+                colors: ['#FFD1DC'], fontName: 'Roboto'
+            });
+        } else {
+            jobGroupChartDiv.innerHTML = noDataHtml;
+        }
         
-        monthOrder.forEach(month => {
-            const hires = data.newHiresByMonth[month] || 0;
-            newHiresData.addRow([month, hires, hires]);
-        });
+        // --- REVISED: Draw Length of Service Chart ---
+        const losChartDiv = document.getElementById('los_chart_div');
+        const totalLos = Object.values(data.losCounts).reduce((a, b) => a + b, 0);
+        if (totalLos > 0) {
+            const losOrder = ['< 1 Year', '1-3 Years', '3-5 Years', '5-10 Years', '10+ Years'];
+            const losDataArray = [['Length of Service', 'Count', { role: 'annotation' }]];
+            losOrder.forEach(key => {
+                const value = data.losCounts[key] || 0;
+                losDataArray.push([key, value, value]);
+            });
+            const losData = google.visualization.arrayToDataTable(losDataArray);
+            const losChart = new google.visualization.ColumnChart(losChartDiv);
+            losChart.draw(losData, { 
+                is3D: true, legend: { position: 'none' }, vAxis: { minValue: 0 },
+                annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
+                colors: ['#FFDB58'], fontName: 'Roboto'
+            });
+        } else {
+            losChartDiv.innerHTML = noDataHtml;
+        }
 
-        const newHiresChart = new google.visualization.ColumnChart(document.getElementById('new_hires_chart_div'));
-        newHiresChart.draw(newHiresData, {
-            is3D: true,
-            colors: ['#10B981'],
-            legend: { position: 'none' },
-            vAxis: { title: 'Number of Hires', minValue: 0 },
-            annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } },
-            fontName: 'Roboto'
-        });
+        // --- REVISED: Draw New Hires Chart ---
+        const newHiresChartDiv = document.getElementById('new_hires_chart_div');
+        if (Object.keys(data.newHiresByMonth).length > 0) {
+            const newHiresData = new google.visualization.DataTable();
+            newHiresData.addColumn('string', 'Month');
+            newHiresData.addColumn('number', 'New Hires');
+            newHiresData.addColumn({ type: 'number', role: 'annotation' });
+            const monthOrder = Array.from({length: 12}, (_, i) => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i, 1);
+                return d.toLocaleString('default', { month: 'short' }) + ' ' + d.getFullYear();
+            }).reverse();
+            
+            monthOrder.forEach(month => {
+                const hires = data.newHiresByMonth[month] || 0;
+                newHiresData.addRow([month, hires, hires]);
+            });
+
+            const newHiresChart = new google.visualization.ColumnChart(newHiresChartDiv);
+            newHiresChart.draw(newHiresData, {
+                is3D: true, colors: ['#10B981'], legend: { position: 'none' },
+                vAxis: { title: 'Number of Hires', minValue: 0 },
+                annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } }, fontName: 'Roboto'
+            });
+        } else {
+            newHiresChartDiv.innerHTML = noDataHtml;
+        }
         
       })
       .withFailureHandler(function(err) {
@@ -1268,7 +1342,6 @@
     if (resignationDataLoaded && !forceRefresh) return;
     resignationDataLoaded = true; 
     
-    // Show loaders in all chart divs
     const chartDivs = ['monthly_turnover_chart_div', 'reason_chart_div', 'resignation_gender_chart_div', 'resignation_contract_chart_div', 'resignation_division_chart_div', 'resignation_job_group_chart_div', 'hires_leavers_chart_div', 'ytd_turnover_chart_div'];
     chartDivs.forEach(id => {
         document.getElementById(id).innerHTML = '<div class="flex justify-center items-center h-full"><div id="loader"></div></div>';
@@ -1288,22 +1361,11 @@
 
     google.script.run
         .withSuccessHandler(function(data) {
-            // Update Headcount Card
-            const headcountCard = document.getElementById('resignation-headcount-card');
-            const headcountTitle = headcountCard.querySelector('h3');
-            const headcountValue = headcountCard.querySelector('p');
+            // --- REVISED: Correctly populate both Resigned and Hired cards ---
+            document.querySelector('#resignation-headcount-card p').textContent = data.filteredResignationsCount;
+            document.querySelector('#resignation-hired-card p').textContent = data.yearlyHiresLeavers.hires;
 
-            const allFiltersDefault = Object.values(filters).every(val => String(val).toLowerCase().startsWith('all'));
-
-            if (allFiltersDefault) {
-                headcountTitle.textContent = 'Total Headcount';
-                headcountValue.textContent = data.overallHeadcount;
-            } else {
-                headcountTitle.textContent = 'Filtered Resignations';
-                headcountValue.textContent = data.filteredResignationsCount;
-            }
-
-            // --- Helper function to create detailed pie chart labels ---
+            // Helper function to create detailed pie chart labels
             const createPieChartData = (counts) => {
                 const dataArray = [['Category', 'Count']];
                 const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
@@ -1321,112 +1383,126 @@
                 return { data: google.visualization.arrayToDataTable(dataArray), isNoData: false, sortedKeys: sortedKeys };
             };
 
-            // Draw Reason for Leaving Chart (3D Horizontal Bar)
-            const reasonDataArray = [['Reason', 'Count', { role: 'annotation' }]];
-            if(Object.keys(data.reasonCounts).length) {
-                Object.entries(data.reasonCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => reasonDataArray.push([key, value, value]));
-            } else { reasonDataArray.push(['No Data', 0, 0]); }
-            const reasonData = google.visualization.arrayToDataTable(reasonDataArray);
-            const reasonChart = new google.visualization.BarChart(document.getElementById('reason_chart_div'));
-            reasonChart.draw(reasonData, { is3D: true, colors: ['#6B7280'], legend: { position: 'none' }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } }, fontName: 'Roboto' });
+            const noDataHtml = '<div class="flex justify-center items-center h-full"><p class="text-gray-500">No data available for this selection.</p></div>';
 
-            // Draw Resignation by Gender (3D Pie with Leader Lines)
-            const genderChartDataResult = createPieChartData(data.resignationGenderCounts);
-            const genderChart = new google.visualization.PieChart(document.getElementById('resignation_gender_chart_div'));
-            const genderSlices = {};
-            if (genderChartDataResult.isNoData) {
-                genderSlices[0] = { color: 'transparent', textStyle: { color: 'transparent' } };
+            // Draw Reason for Leaving Chart
+            const reasonChartDiv = document.getElementById('reason_chart_div');
+            if (Object.keys(data.reasonCounts).length > 0) {
+                const reasonDataArray = [['Reason', 'Count', { role: 'annotation' }]];
+                Object.entries(data.reasonCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => reasonDataArray.push([key, value, value]));
+                const reasonData = google.visualization.arrayToDataTable(reasonDataArray);
+                const reasonChart = new google.visualization.BarChart(reasonChartDiv);
+                reasonChart.draw(reasonData, { is3D: true, colors: ['#6B7280'], legend: { position: 'none' }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } }, fontName: 'Roboto' });
             } else {
+                reasonChartDiv.innerHTML = noDataHtml;
+            }
+
+            // Draw Resignation by Gender
+            const genderChartDiv = document.getElementById('resignation_gender_chart_div');
+            if (Object.keys(data.resignationGenderCounts).length > 0) {
+                const genderChartDataResult = createPieChartData(data.resignationGenderCounts);
+                const genderChart = new google.visualization.PieChart(genderChartDiv);
+                const genderSlices = {};
                 const femaleIndex = genderChartDataResult.sortedKeys.indexOf('Female');
                 const maleIndex = genderChartDataResult.sortedKeys.indexOf('Male');
-                if (femaleIndex !== -1) genderSlices[femaleIndex] = { color: '#ef4444' }; // Red
-                if (maleIndex !== -1) genderSlices[maleIndex] = { color: '#3b82f6' };   // Blue
+                if (femaleIndex !== -1) genderSlices[femaleIndex] = { color: '#ef4444' };
+                if (maleIndex !== -1) genderSlices[maleIndex] = { color: '#3b82f6' };
+                genderChart.draw(genderChartDataResult.data, {
+                    is3D: true, legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
+                    pieSliceText: 'none', tooltip: { text: 'value' }, chartArea: {'width': '100%', 'height': '90%'},
+                    slices: genderSlices, fontName: 'Roboto'
+                });
+            } else {
+                genderChartDiv.innerHTML = noDataHtml;
             }
-            genderChart.draw(genderChartDataResult.data, {
-                is3D: true,
-                legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
-                pieSliceText: 'none',
-                tooltip: { text: 'value' },
-                chartArea: {'width': '100%', 'height': '90%'},
-                slices: genderSlices,
-                fontName: 'Roboto'
-            });
 
-            // Draw Resignation by Contract Type (3D Horizontal Bar)
-            const contractDataArray = [['Contract Type', 'Count', { role: 'annotation' }]];
-            if(Object.keys(data.resignationContractCounts).length) {
+            // Draw Resignation by Contract Type
+            const contractChartDiv = document.getElementById('resignation_contract_chart_div');
+            if (Object.keys(data.resignationContractCounts).length > 0) {
+                const contractDataArray = [['Contract Type', 'Count', { role: 'annotation' }]];
                 Object.entries(data.resignationContractCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => contractDataArray.push([key, value, value]));
-            } else { contractDataArray.push(['No Data', 0, 0]); }
-            const contractData = google.visualization.arrayToDataTable(contractDataArray);
-            const contractChart = new google.visualization.BarChart(document.getElementById('resignation_contract_chart_div'));
-            contractChart.draw(contractData, { is3D: true, colors: ['#10B981'], legend: { position: 'none' }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } }, fontName: 'Roboto' });
+                const contractData = google.visualization.arrayToDataTable(contractDataArray);
+                const contractChart = new google.visualization.BarChart(contractChartDiv);
+                contractChart.draw(contractData, { is3D: true, colors: ['#10B981'], legend: { position: 'none' }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } }, fontName: 'Roboto' });
+            } else {
+                contractChartDiv.innerHTML = noDataHtml;
+            }
             
-            // Draw Resignation by Division (3D Column)
-            const divisionDataArray = [['Division', 'Count', { role: 'annotation' }]];
-            if(Object.keys(data.resignationDivisionCounts).length) {
+            // Draw Resignation by Division
+            const divisionChartDiv = document.getElementById('resignation_division_chart_div');
+            if (Object.keys(data.resignationDivisionCounts).length > 0) {
+                const divisionDataArray = [['Division', 'Count', { role: 'annotation' }]];
                 Object.entries(data.resignationDivisionCounts).sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, value]) => divisionDataArray.push([key, value, value]));
-            } else { divisionDataArray.push(['No Data', 0, 0]); }
-            const divisionData = google.visualization.arrayToDataTable(divisionDataArray);
-            const divisionChart = new google.visualization.ColumnChart(document.getElementById('resignation_division_chart_div'));
-            divisionChart.draw(divisionData, { is3D: true, colors: ['#8B5CF6'], legend: { position: 'none' }, vAxis: { minValue: 0 }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } }, fontName: 'Roboto' });
+                const divisionData = google.visualization.arrayToDataTable(divisionDataArray);
+                const divisionChart = new google.visualization.ColumnChart(divisionChartDiv);
+                divisionChart.draw(divisionData, { is3D: true, colors: ['#8B5CF6'], legend: { position: 'none' }, vAxis: { minValue: 0 }, annotations: { textStyle: { fontSize: 12, color: '#212121', auraColor: 'none' } }, fontName: 'Roboto' });
+            } else {
+                divisionChartDiv.innerHTML = noDataHtml;
+            }
 
-            // Draw Resignation by Job Group (3D Pie with Leader Lines)
-            const jobGroupChartDataResult = createPieChartData(data.resignationJobGroupCounts);
-            const jobGroupChart = new google.visualization.PieChart(document.getElementById('resignation_job_group_chart_div'));
-            jobGroupChart.draw(jobGroupChartDataResult.data, {
-                is3D: true,
-                legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
-                pieSliceText: 'none',
-                tooltip: { text: 'value' },
-                chartArea: {'width': '100%', 'height': '90%'},
-                colors: ['#F59E0B', '#14B8A6', '#EC4899', '#6366F1', '#84CC16'],
-                fontName: 'Roboto'
-            });
+            // Draw Resignation by Job Group
+            const jobGroupChartDiv = document.getElementById('resignation_job_group_chart_div');
+            if (Object.keys(data.resignationJobGroupCounts).length > 0) {
+                const jobGroupChartDataResult = createPieChartData(data.resignationJobGroupCounts);
+                const jobGroupChart = new google.visualization.PieChart(jobGroupChartDiv);
+                jobGroupChart.draw(jobGroupChartDataResult.data, {
+                    is3D: true, legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
+                    pieSliceText: 'none', tooltip: { text: 'value' }, chartArea: {'width': '100%', 'height': '90%'},
+                    colors: ['#F59E0B', '#14B8A6', '#EC4899', '#6366F1', '#84CC16'], fontName: 'Roboto'
+                });
+            } else {
+                jobGroupChartDiv.innerHTML = noDataHtml;
+            }
             
-            // Draw Monthly Turnover Rate (3D Combo Chart)
-            const turnoverData = new google.visualization.DataTable();
-            turnoverData.addColumn('string', 'Month');
-            turnoverData.addColumn('number', 'Separations');
-            turnoverData.addColumn({type: 'string', role: 'annotation'});
-            turnoverData.addColumn('number', 'Turnover Rate');
-            data.monthlyTurnover.forEach(d => {
-                turnoverData.addRow([d.month, d.separations, d.separations.toString(), d.rate]);
-            });
-            const turnoverChart = new google.visualization.ComboChart(document.getElementById('monthly_turnover_chart_div'));
-            turnoverChart.draw(turnoverData, {
-                is3D: true,
-                seriesType: 'bars',
-                series: {1: {type: 'line', color: '#EF4444', targetAxisIndex: 1}},
-                vAxes: { 0: {title: 'Number of Separations', minValue: 0}, 1: {title: 'Rate (%)', minValue: 0, format: '#.##'}},
-                legend: { position: 'top' },
-                colors: ['#3B82F6'],
-                fontName: 'Roboto'
-            });
+            // Draw Monthly Turnover Rate
+            const turnoverChartDiv = document.getElementById('monthly_turnover_chart_div');
+            const totalSeparations = data.monthlyTurnover.reduce((sum, item) => sum + item.separations, 0);
+            if (totalSeparations > 0) {
+                const turnoverData = new google.visualization.DataTable();
+                turnoverData.addColumn('string', 'Month');
+                turnoverData.addColumn('number', 'Separations');
+                turnoverData.addColumn({type: 'string', role: 'annotation'});
+                turnoverData.addColumn('number', 'Turnover Rate');
+                data.monthlyTurnover.forEach(d => {
+                    turnoverData.addRow([d.month, d.separations, d.separations.toString(), d.rate]);
+                });
+                const turnoverChart = new google.visualization.ComboChart(turnoverChartDiv);
+                turnoverChart.draw(turnoverData, {
+                    is3D: true, seriesType: 'bars', series: {1: {type: 'line', color: '#EF4444', targetAxisIndex: 1}},
+                    vAxes: { 0: {title: 'Number of Separations', minValue: 0}, 1: {title: 'Rate (%)', minValue: 0, format: '#.##'}},
+                    legend: { position: 'top' }, colors: ['#3B82F6'], fontName: 'Roboto'
+                });
+            } else {
+                turnoverChartDiv.innerHTML = noDataHtml;
+            }
 
-            // Draw Yearly Hires and Leavers Chart (3D Pie with Leader Lines)
-            const hiresLeaversCounts = {
-                'Hires': data.yearlyHiresLeavers.hires || 0,
-                'Leavers': data.yearlyHiresLeavers.leavers || 0
-            };
-            const hiresLeaversChartDataResult = createPieChartData(hiresLeaversCounts);
-            const hiresLeaversChart = new google.visualization.PieChart(document.getElementById('hires_leavers_chart_div'));
-            hiresLeaversChart.draw(hiresLeaversChartDataResult.data, {
-                is3D: true,
-                legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
-                pieSliceText: 'none',
-                tooltip: { text: 'value' },
-                chartArea: {'width': '100%', 'height': '90%'},
-                colors: ['#22C55E', '#F97316'],
-                fontName: 'Roboto'
-            });
+            // Draw Yearly Hires and Leavers Chart
+            const hiresLeaversChartDiv = document.getElementById('hires_leavers_chart_div');
+            if (data.yearlyHiresLeavers.hires > 0 || data.yearlyHiresLeavers.leavers > 0) {
+                const hiresLeaversCounts = { 'Hires': data.yearlyHiresLeavers.hires || 0, 'Leavers': data.yearlyHiresLeavers.leavers || 0 };
+                const hiresLeaversChartDataResult = createPieChartData(hiresLeaversCounts);
+                const hiresLeaversChart = new google.visualization.PieChart(hiresLeaversChartDiv);
+                hiresLeaversChart.draw(hiresLeaversChartDataResult.data, {
+                    is3D: true, legend: { position: 'labeled', textStyle: { color: 'black', bold: true, italic: true } },
+                    pieSliceText: 'none', tooltip: { text: 'value' }, chartArea: {'width': '100%', 'height': '90%'},
+                    colors: ['#22C55E', '#F97316'], fontName: 'Roboto'
+                });
+            } else {
+                hiresLeaversChartDiv.innerHTML = noDataHtml;
+            }
 
-            // Draw YTD Turnover Chart (3D Column)
-            const ytdTurnoverData = google.visualization.arrayToDataTable([
-                ['Year', 'YTD Turnover Rate (%)', { role: 'annotation' }],
-                [filters.year || new Date().getFullYear().toString(), data.ytdTurnover, data.ytdTurnover.toString() + '%']
-            ]);
-            const ytdTurnoverChart = new google.visualization.ColumnChart(document.getElementById('ytd_turnover_chart_div'));
-            ytdTurnoverChart.draw(ytdTurnoverData, { is3D: true, colors: ['#D946EF'], legend: { position: 'none' }, vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, fontName: 'Roboto' });
+            // Draw YTD Turnover Chart
+            const ytdTurnoverChartDiv = document.getElementById('ytd_turnover_chart_div');
+            if (data.ytdTurnover > 0) {
+                const ytdTurnoverData = google.visualization.arrayToDataTable([
+                    ['Year', 'YTD Turnover Rate (%)', { role: 'annotation' }],
+                    [filters.year || new Date().getFullYear().toString(), data.ytdTurnover, data.ytdTurnover.toString() + '%']
+                ]);
+                const ytdTurnoverChart = new google.visualization.ColumnChart(ytdTurnoverChartDiv);
+                ytdTurnoverChart.draw(ytdTurnoverData, { is3D: true, colors: ['#D946EF'], legend: { position: 'none' }, vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, fontName: 'Roboto' });
+            } else {
+                ytdTurnoverChartDiv.innerHTML = noDataHtml;
+            }
 
         })
         .withFailureHandler(function(err) {
@@ -1522,41 +1598,67 @@
 
     google.script.run
         .withSuccessHandler(function(data) {
+            const noDataHtml = '<div class="flex justify-center items-center h-full"><p class="text-gray-500">No data available for this selection.</p></div>';
+
+            // --- REVISED: Populate Headcount Cards ---
+            document.querySelector('#movement-promoted-card p').textContent = data.promotionCount;
+            document.querySelector('#movement-transferred-card p').textContent = data.transferCount;
+
             // Promotions by Dept
-            const promoDeptData = new google.visualization.DataTable();
-            promoDeptData.addColumn('string', 'Department');
-            promoDeptData.addColumn('number', 'Promotions');
-            Object.entries(data.promotionsByDept).forEach(([dept, count]) => {
-                promoDeptData.addRow([dept, count]);
-            });
-            const promoDeptChart = new google.visualization.BarChart(document.getElementById('promo_by_dept_chart_div'));
-            promoDeptChart.draw(promoDeptData, { is3D: true, colors: ['#22C55E'], fontName: 'Roboto', legend: { position: 'none' } });
+            const promoDeptChartDiv = document.getElementById('promo_by_dept_chart_div');
+            if (data.promotionCount > 0) {
+                const promoDeptData = new google.visualization.DataTable();
+                promoDeptData.addColumn('string', 'Department');
+                promoDeptData.addColumn('number', 'Promotions');
+                Object.entries(data.promotionsByDept).forEach(([dept, count]) => {
+                    promoDeptData.addRow([dept, count]);
+                });
+                const promoDeptChart = new google.visualization.BarChart(promoDeptChartDiv);
+                promoDeptChart.draw(promoDeptData, { is3D: true, colors: ['#22C55E'], fontName: 'Roboto', legend: { position: 'none' } });
+            } else {
+                promoDeptChartDiv.innerHTML = noDataHtml;
+            }
 
             // Transfers by Dept
-            const transferDeptData = new google.visualization.DataTable();
-            transferDeptData.addColumn('string', 'Department');
-            transferDeptData.addColumn('number', 'Transfers');
-            Object.entries(data.transfersByDept).forEach(([dept, count]) => {
-                transferDeptData.addRow([dept, count]);
-            });
-            const transferDeptChart = new google.visualization.BarChart(document.getElementById('transfer_by_dept_chart_div'));
-            transferDeptChart.draw(transferDeptData, { is3D: true, colors: ['#3B82F6'], fontName: 'Roboto', legend: { position: 'none' } });
+            const transferDeptChartDiv = document.getElementById('transfer_by_dept_chart_div');
+            if (data.transferCount > 0) {
+                const transferDeptData = new google.visualization.DataTable();
+                transferDeptData.addColumn('string', 'Department');
+                transferDeptData.addColumn('number', 'Transfers');
+                Object.entries(data.transfersByDept).forEach(([dept, count]) => {
+                    transferDeptData.addRow([dept, count]);
+                });
+                const transferDeptChart = new google.visualization.BarChart(transferDeptChartDiv);
+                transferDeptChart.draw(transferDeptData, { is3D: true, colors: ['#3B82F6'], fontName: 'Roboto', legend: { position: 'none' } });
+            } else {
+                transferDeptChartDiv.innerHTML = noDataHtml;
+            }
 
             // Promotion Rate
-            const promoRateData = google.visualization.arrayToDataTable([
-                ['Metric', 'Rate', { role: 'style' }],
-                ['Promotion Rate', data.promotionRate, '#F59E0B']
-            ]);
-            const promoRateChart = new google.visualization.ColumnChart(document.getElementById('promotion_rate_chart_div'));
-            promoRateChart.draw(promoRateData, { is3D: true, fontName: 'Roboto', vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, legend: { position: 'none' } });
+            const promoRateChartDiv = document.getElementById('promotion_rate_chart_div');
+            if (data.promotionRate > 0) {
+                const promoRateData = google.visualization.arrayToDataTable([
+                    ['Metric', 'Rate', { role: 'style' }],
+                    ['Promotion Rate', data.promotionRate, '#F59E0B']
+                ]);
+                const promoRateChart = new google.visualization.ColumnChart(promoRateChartDiv);
+                promoRateChart.draw(promoRateData, { is3D: true, fontName: 'Roboto', vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, legend: { position: 'none' } });
+            } else {
+                promoRateChartDiv.innerHTML = noDataHtml;
+            }
             
             // Transfer Rate
-            const transferRateData = google.visualization.arrayToDataTable([
-                ['Metric', 'Rate', { role: 'style' }],
-                ['Transfer Rate', data.transferRate, '#8B5CF6']
-            ]);
-            const transferRateChart = new google.visualization.ColumnChart(document.getElementById('transfer_rate_chart_div'));
-            transferRateChart.draw(transferRateData, { is3D: true, fontName: 'Roboto', vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, legend: { position: 'none' } });
+            const transferRateChartDiv = document.getElementById('transfer_rate_chart_div');
+            if (data.transferRate > 0) {
+                const transferRateData = google.visualization.arrayToDataTable([
+                    ['Metric', 'Rate', { role: 'style' }],
+                    ['Transfer Rate', data.transferRate, '#8B5CF6']
+                ]);
+                const transferRateChart = new google.visualization.ColumnChart(transferRateChartDiv);
+                transferRateChart.draw(transferRateData, { is3D: true, fontName: 'Roboto', vAxis: { title: 'Rate (%)', minValue: 0, format: '#.##' }, legend: { position: 'none' } });
+            } else {
+                transferRateChartDiv.innerHTML = noDataHtml;
+            }
         })
         .withFailureHandler(function(err) {
             document.getElementById('employee-movement-view').innerHTML = `<p class="text-red-500">Could not load employee movement data. Error: ${err.message}</p>`;
@@ -1631,18 +1733,26 @@
   // --- UI & DATA RENDERING ---
 
   function getDirectFilteredCount() {
-    var division = document.getElementById('division-filter-value').value;
-    var group = document.getElementById('group-filter-value').value;
-    var department = document.getElementById('department-filter-value').value;
-    var section = document.getElementById('section-filter-value').value;
-    return fullEmployeeData.filter(function(emp) {
-      return (emp.positionStatus || '').toLowerCase() !== 'inactive' &&
-      (division === 'all' || emp.division === division) &&
-      (group === 'all' || emp.group === group) &&
-      (department === 'all' || emp.department === department) &&
-      (section === 'all' || emp.section === section);
-    });
-  }
+  var division = document.getElementById('division-filter-value').value;
+  var group = document.getElementById('group-filter-value').value;
+  var department = document.getElementById('department-filter-value').value;
+  var section = document.getElementById('section-filter-value').value;
+  // --- NEW: Get the state of the checkbox ---
+  var showInactive = document.getElementById('show-inactive-checkbox').checked;
+
+  return fullEmployeeData.filter(function(emp) {
+    // --- REVISED: Conditionally filter based on the checkbox ---
+    const isActive = (emp.positionStatus || '').toLowerCase() !== 'inactive';
+    if (!showInactive && !isActive) {
+        return false; // If we're not showing inactive, and the position is inactive, hide it.
+    }
+
+    return (division === 'all' || emp.division === division) &&
+           (group === 'all' || emp.group === group) &&
+           (department === 'all' || emp.department === department) &&
+           (section === 'all' || emp.section === section);
+  });
+}
 
   function updateUI() {
     showLoader();
@@ -1767,90 +1877,102 @@
     }
   }
 
-  function drawChart(filteredData) {
-    var chartDataForDisplay = getChartData(filteredData);
-    if (chartDataForDisplay.length === 0) {
-        document.getElementById('chart_div').innerHTML = '<p class="text-center text-gray-500 pt-10">No positions match filter.</p>';
-        return;
-    }
-    dataTable = new google.visualization.DataTable();
-    dataTable.addColumn('string', 'Node ID');
-    dataTable.addColumn('string', 'Reporting to ID');
-    chartDataForDisplay.forEach(function(emp) {
-        let nodeHtml;
-        let actionsHtml = '';
-        if (userCanEdit) {
-            actionsHtml = `<div class="node-actions">
-                                <button title="Edit" onclick="event.stopPropagation(); openModal('edit', '${emp.nodeId}')" class="action-btn">
-                                  <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 14l-1 4 4-1 7.586-7.586-2.828-2.828L5 14z"></path></svg>
-                                </button>
-                                <button title="Deactivate" onclick="event.stopPropagation(); deactivateEmployee('${emp.positionId}')" class="action-btn">
-                                  <svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
-                                </button>
-                                <button title="Job Description" onclick="event.stopPropagation(); openJdModal('${emp.positionId}', '${emp.employeeId || ''}', '${emp.jobTitle || ''}')" class="action-btn">
-                                  <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2V4a2 2 0 00-2-2H9z"></path><path d="M4 12a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"></path></svg>
-                                </button>
-                              </div>`;
-        }
+function drawChart(filteredData) {
+      var chartDataForDisplay = getChartData(filteredData);
+      if (chartDataForDisplay.length === 0) {
+          document.getElementById('chart_div').innerHTML = '<p class="text-center text-gray-500 pt-10">No positions match filter.</p>';
+          return;
+      }
+      dataTable = new google.visualization.DataTable();
+      dataTable.addColumn('string', 'Node ID');
+      dataTable.addColumn('string', 'Reporting to ID');
+      chartDataForDisplay.forEach(function(emp) {
+          let nodeHtml;
+          let actionsHtml = '';
+          const isInactive = (emp.positionStatus || '').toUpperCase() === 'INACTIVE';
 
-        if (emp.employeeId) {
-            let resignTag = '';
-            if (emp.status.toUpperCase() === 'RESIGNED' && emp.resignationDate) {
-                resignTag = `<div style="position: absolute; top: 4px; left: 4px; background-color: #ef4444; color: white; padding: 2px 6px; border-radius: 9999px; font-size: 10px; font-weight: bold; z-index: 5;">
-                                RESIGNEE (Eff. ${emp.resignationDate})
-                              </div>`;
-            }
-        
-            const contractTypeUpper = emp.stylingContractType ? emp.stylingContractType.toUpperCase() : '';
-            let levelBorderClass = `level-${emp.level || 'default'}-border`;
-            let levelBgClass = `level-${emp.level || 'default'}-bg`;
-            let contractClass = '';
-            if (contractTypeUpper === 'JREL' || contractTypeUpper === 'JPRO') {
-                levelBorderClass = 'contract-jrel-jpro-border';
-                levelBgClass = 'contract-jrel-jpro-bg';
-                contractClass = 'contract-dashed';
-            } else if (contractTypeUpper === 'JREG') {
-                levelBorderClass = 'contract-jreg-border';
-                levelBgClass = 'contract-jreg-bg';
-                contractClass = 'contract-dashed';
-            } else if (contractTypeUpper === 'OTHERS') {
-                levelBorderClass = 'contract-others-border';
-                levelBgClass = 'contract-others-bg';
-                contractClass = 'contract-dashed';
-            }
-            const photoUrl = emp.gender && emp.gender.toLowerCase() === 'female' ? 'https://i.imgur.com/dTvdfy0.png' : 'https://i.imgur.com/bIbZ89x.png';
-            const deptSection = emp.section ? `${emp.department} (${emp.section})` : emp.department;
-            const payrollBadge = emp.payrollType ? `<div class="badge bg-badge-payroll">${emp.payrollType}</div>` : '';
-            const jobLevelBadge = emp.jobLevel ? `<div class="badge bg-badge-joblevel">${emp.jobLevel}</div>` : '';
-            const contractBadge = emp.contractType ? `<div class="badge bg-badge-contract">${emp.contractType}</div>` : '';
-            const competencyBadge = emp.competency ? `<div class="badge bg-badge-competency">${emp.competency}</div>` : '';
-            const badgeHtml = `<div class="badge-grid">${payrollBadge}${jobLevelBadge}${contractBadge}${competencyBadge}</div>`;
-            const normalizedStatus = toTitleCase(emp.status);
-            const statusClass = statusColors[normalizedStatus] || '';
-            const statusDot = statusClass && !resignTag ? `<div class="status-dot ${statusClass}"></div>` : '';
-            
-            nodeHtml = `<div class="node-card ${levelBorderClass} ${levelBgClass} ${contractClass}" onmouseover="showTooltip(event, '${emp.nodeId}')" onmouseout="hideTooltip()">
-                          ${resignTag}${statusDot}${actionsHtml}
-                          <img src="${photoUrl}" onerror="this.onerror=null;this.src='https://i.imgur.com/RHvayzz.png';">
-                          <div class="node-text">
-                            <div class="name">${emp.employeeName}</div>
-                            <div class="title">${emp.jobTitle}</div>
-                            <div class="dept">${deptSection || ''}</div>
-                          </div>
-                          ${badgeHtml}
-                        </div>`;
-        } else {
-            nodeHtml = `<div class="vacant-card" onmouseover="showTooltip(event, '${emp.nodeId}')" onmouseout="hideTooltip()">
-                          ${actionsHtml}
-                          <div class="name">VACANT</div>
-                          <div class="title">${emp.jobTitle}</div>
-                        </div>`;
-        }
-        dataTable.addRow([{ v: emp.nodeId, f: nodeHtml }, emp.managerId]);
-    });
-    chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
-    chart.draw(dataTable, { allowHtml: true, allowCollapse: true });
-  }
+          let inactiveOverlayHtml = '';
+          if (isInactive) {
+              inactiveOverlayHtml = '<div class="inactive-overlay">INACTIVE</div>';
+          }
+
+          if (userCanEdit) {
+              let primaryActionBtn = '';
+              if (isInactive) {
+                  primaryActionBtn = '<button title="Reactivate" onclick="event.stopPropagation(); reactivateEmployee(\'' + emp.positionId + '\')" class="action-btn">' +
+                                        '<svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd"></path></svg>' +
+                                      '</button>';
+              } else {
+                  primaryActionBtn = '<button title="Deactivate" onclick="event.stopPropagation(); deactivateEmployee(\'' + emp.positionId + '\')" class="action-btn">' +
+                                        '<svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>' +
+                                      '</button>';
+              }
+              actionsHtml = '<div class="node-actions">' +
+                              '<button title="Edit" onclick="event.stopPropagation(); openModal(\'edit\', \'' + emp.nodeId + '\')" class="action-btn">' +
+                                '<svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 14l-1 4 4-1 7.586-7.586-2.828-2.828L5 14z"></path></svg>' +
+                              '</button>' +
+                              primaryActionBtn +
+                              '<button title="Job Description" onclick="event.stopPropagation(); openJdModal(\'' + emp.positionId + '\', \'' + (emp.employeeId || '') + '\', \'' + (emp.jobTitle || '') + '\')" class="action-btn">' +
+                                '<svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h2a2 2 0 002-2V4a2 2 0 00-2-2H9z"></path><path d="M4 12a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z"></path></svg>' +
+                              '</button>' +
+                            '</div>';
+          }
+
+          if (emp.employeeId) {
+              let resignTag = '';
+              if (emp.status.toUpperCase() === 'RESIGNED' && emp.resignationDate) {
+                  resignTag = '<div style="position: absolute; top: 4px; left: 4px; background-color: #ef4444; color: white; padding: 2px 6px; border-radius: 9999px; font-size: 10px; font-weight: bold; z-index: 5;">RESIGNEE (Eff. ' + emp.resignationDate + ')</div>';
+              }
+              const contractTypeUpper = emp.stylingContractType ? emp.stylingContractType.toUpperCase() : '';
+              let levelBorderClass = 'level-' + (emp.level || 'default') + '-border';
+              let levelBgClass = 'level-' + (emp.level || 'default') + '-bg';
+              let contractClass = '';
+              if (contractTypeUpper === 'JREL' || contractTypeUpper === 'JPRO') {
+                  levelBorderClass = 'contract-jrel-jpro-border';
+                  levelBgClass = 'contract-jrel-jpro-bg';
+                  contractClass = 'contract-dashed';
+              } else if (contractTypeUpper === 'JREG') {
+                  levelBorderClass = 'contract-jreg-border';
+                  levelBgClass = 'contract-jreg-bg';
+                  contractClass = 'contract-dashed';
+              } else if (contractTypeUpper === 'OTHERS') {
+                  levelBorderClass = 'contract-others-border';
+                  levelBgClass = 'contract-others-bg';
+                  contractClass = 'contract-dashed';
+              }
+              const photoUrl = emp.gender && emp.gender.toLowerCase() === 'female' ? 'https://i.imgur.com/dTvdfy0.png' : 'https://i.imgur.com/bIbZ89x.png';
+              const deptSection = emp.section ? (emp.department + ' (' + emp.section + ')') : emp.department;
+              const payrollBadge = emp.payrollType ? '<div class="badge bg-badge-payroll">' + emp.payrollType + '</div>' : '';
+              const jobLevelBadge = emp.jobLevel ? '<div class="badge bg-badge-joblevel">' + emp.jobLevel + '</div>' : '';
+              const contractBadge = emp.contractType ? '<div class="badge bg-badge-contract">' + emp.contractType + '</div>' : '';
+              const competencyBadge = emp.competency ? '<div class="badge bg-badge-competency">' + emp.competency + '</div>' : '';
+              const badgeHtml = '<div class="badge-grid">' + payrollBadge + jobLevelBadge + contractBadge + competencyBadge + '</div>';
+              const normalizedStatus = toTitleCase(emp.status);
+              const statusClass = statusColors[normalizedStatus] || '';
+              const statusDot = statusClass && !resignTag ? '<div class="status-dot ' + statusClass + '"></div>' : '';
+              
+              nodeHtml = '<div class="node-card ' + levelBorderClass + ' ' + levelBgClass + ' ' + contractClass + '" onmouseover="showTooltip(event, \'' + emp.nodeId + '\')" onmouseout="hideTooltip()">' +
+                            inactiveOverlayHtml + resignTag + statusDot + actionsHtml +
+                            '<img src="' + photoUrl + '" onerror="this.onerror=null;this.src=\'https://i.imgur.com/RHvayzz.png\';">' +
+                            '<div class="node-text">' +
+                              '<div class="name">' + emp.employeeName + '</div>' +
+                              '<div class="title">' + emp.jobTitle + '</div>' +
+                              '<div class="dept">' + (deptSection || '') + '</div>' +
+                            '</div>' +
+                            badgeHtml +
+                          '</div>';
+          } else {
+              nodeHtml = '<div class="vacant-card" onmouseover="showTooltip(event, \'' + emp.nodeId + '\')" onmouseout="hideTooltip()">' +
+                            inactiveOverlayHtml + actionsHtml +
+                            '<div class="name">VACANT</div>' +
+                            '<div class="title">' + emp.jobTitle + '</div>' +
+                          '</div>';
+          }
+          dataTable.addRow([{ v: emp.nodeId, f: nodeHtml }, emp.managerId]);
+      });
+      chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
+      chart.draw(dataTable, { allowHtml: true, allowCollapse: true });
+    }
 
   function showTooltip(event, nodeId) {
     clearTimeout(tooltipTimeout);
@@ -2403,8 +2525,10 @@ function renderNotifications(data) {
    * Sets up the main event listeners for the page (e.g., the reset button).
    */
   function setupPageEventListeners() {
-      document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
-  }
+    document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
+    // --- ADD THIS LINE ---
+    document.getElementById('show-inactive-checkbox').addEventListener('change', updateUI);
+}
 
   /**
    * Resets all filters to their default "All" state and updates the UI.
@@ -2542,11 +2666,14 @@ function renderNotifications(data) {
     document.getElementById('contract-end-date-wrapper').style.display = 'none';
     document.getElementById('contractenddate').required = false;
 
+    // --- REVISED: Make Date Hired not required by default ---
+    document.getElementById('datehired').required = false;
+
+
     let statusOptions = [...(dropdownListData.status || [])];
     if (!statusOptions.includes('VACANT')) {
       statusOptions.push('VACANT');
     }
-    // --- NEW: Add Transfer/Promotion statuses to the dropdown ---
     if (!statusOptions.includes('PROMOTION')) {
       statusOptions.push('PROMOTION');
     }
@@ -2620,6 +2747,50 @@ function renderNotifications(data) {
       const showStartDateField = statusesRequiringStartDate.includes(selUpper);
       startDateWrapper.style.display = showStartDateField ? 'block' : 'none';
       startDateInput.required = showStartDateField;
+
+      if (selUpper === 'REGULAR') {
+          const mode = document.getElementById('form-mode').value;
+          if (mode === 'edit') {
+              const positionId = document.getElementById('positionid').value;
+              google.script.run
+                  .withSuccessHandler(function(startDate) {
+                      if (startDate) {
+                          startDateInput.value = startDate;
+                      } else {
+                          const dateHired = document.getElementById('datehired').value;
+                          if(dateHired) {
+                             startDateInput.value = dateHired;
+                          }
+                      }
+                  })
+                  .getStartDateForLastMovement(positionId);
+          } else {
+               const dateHired = document.getElementById('datehired').value;
+               if(dateHired) {
+                  startDateInput.value = dateHired;
+               }
+          }
+      }
+      
+      // --- NEW LOGIC: Auto-populate and require Date Hired based on status ---
+      const dateHiredInput = document.getElementById('datehired');
+      const statusesRequiringDateHired = ['REGULAR', 'PROBATIONARY', 'PROMOTION', 'INTERNAL TRANSFER', 'LATERAL TRANSFER', 'RESIGNED'];
+      if (statusesRequiringDateHired.includes(selUpper)) {
+          dateHiredInput.required = true;
+          const employeeId = document.getElementById('employeeid').value;
+          if (mode === 'edit' && employeeId) {
+              google.script.run
+                  .withSuccessHandler(function(hiredDate) {
+                      if (hiredDate) {
+                          dateHiredInput.value = hiredDate;
+                      }
+                  })
+                  .getDateHired(employeeId);
+          }
+      } else {
+          dateHiredInput.required = false;
+      }
+
     });
     createSearchableDropdown('gender-dropdown-container', ['Male', 'Female'], null, null, (sel) => { document.getElementById('gender').value = sel; });
     createSearchableDropdown('reasonforleaving-dropdown-container', dropdownListData.reasonforleaving || [], null, null, (sel) => { document.getElementById('reasonforleaving').value = sel; });
@@ -2915,6 +3086,23 @@ function showSavingOverlay() {
       })
       .deactivatePosition(positionId);
   }
+
+// ADD THIS NEW FUNCTION
+function reactivateEmployee(positionId) {
+  if (!confirm(`Are you sure you want to reactivate position ${positionId}? This will mark it as 'Active' and it will reappear in the default chart view.`)) {
+    return;
+  }
+  showLoader();
+  google.script.run
+    .withSuccessHandler(response => {
+      fetchData(); // Refresh all data to show the change
+    })
+    .withFailureHandler(error => {
+      hideLoader();
+      alert('Error: ' + error.message);
+    })
+    .reactivatePosition(positionId);
+}
 
   function updateDependentDropdowns(level, selectedValue, employeeToLoad) {
     document.getElementById(level).value = selectedValue;
