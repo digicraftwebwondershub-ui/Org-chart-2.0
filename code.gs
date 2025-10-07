@@ -13,6 +13,7 @@ const JD_INCUMBENT_FOLDER_ID = '1ryXesBBwLs8Y1oEfLYDhDIxPQdeB_Ngx';
 
 // Defines the sequential order of approval roles
 const APPROVAL_ROLES = ['Prepared By', 'Reviewed By', 'Noted By', 'Approved By'];
+const MASTERLIST_EXPORT_FOLDER_ID = '1NcOH0Cx5lPRiRilGKkiO1tRiWn1d3P5q'; // <-- ADD THIS LINE
 // --- END CONFIGURATION ---
 
 
@@ -2446,5 +2447,104 @@ function reactivatePosition(positionId) {
     throw new Error('Failed to reactivate position. ' + e.message);
   } finally {
     lock.releaseLock();
+  }
+}
+
+function getMasterlistData(filters) {
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const mainSheet = spreadsheet.getSheets()[0];
+    
+    if (mainSheet.getLastRow() < 1) {
+      return { headers: ["Info"], rows: [["The main data sheet is empty."]] };
+    }
+
+    const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+    
+    // If filters is null, it's a request for just the headers
+    if (filters === null) {
+        return { headers: headers, rows: [] };
+    }
+
+    if (mainSheet.getLastRow() < 2) {
+        return { headers: headers, rows: [] };
+    }
+    
+    const allData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+    const headerMap = new Map(headers.map((h, i) => [h.trim(), i]));
+
+    const filteredRows = allData.filter(row => {
+      const positionStatusIndex = headerMap.get('Position Status');
+      if ((row[positionStatusIndex] || '').toString().trim().toUpperCase() === 'INACTIVE') {
+        return false;
+      }
+      
+      return Object.keys(filters).every(key => {
+        if (!filters[key] || String(filters[key]).toLowerCase().startsWith('all')) {
+          return true;
+        }
+        const colIndex = headerMap.get(key);
+        if (colIndex === undefined) return true; 
+        return (row[colIndex] || '').toString().trim().toLowerCase() === filters[key].toLowerCase();
+      });
+    });
+
+    const serializableRows = filteredRows.map(row => {
+        return row.map(cell => {
+            if (cell instanceof Date) {
+                return Utilities.formatDate(cell, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+            }
+            return cell;
+        });
+    });
+
+    return { headers: headers, rows: serializableRows };
+
+  } catch (e) {
+    Logger.log('FATAL Error in getMasterlistData: ' + e.message + ' Stack: ' + e.stack);
+    return { headers: ["Fatal Error"], rows: [[`A critical error occurred on the server: ${e.message}`]] };
+  }
+}
+
+function generateFilteredMasterlist(payload) {
+  try {
+    const filters = payload.filters;
+    const visibleColumns = payload.visibleColumns;
+    
+    const masterlistData = getMasterlistData(filters);
+    
+    if (masterlistData.rows.length === 0) {
+      throw new Error("No data matches the current filters to export.");
+    }
+    
+    const originalHeaders = masterlistData.headers;
+    const headerIndexMap = originalHeaders.map((header, index) => visibleColumns.includes(header) ? index : -1).filter(index => index !== -1);
+    
+    const finalHeaders = headerIndexMap.map(index => originalHeaders[index]);
+    const finalRows = masterlistData.rows.map(row => headerIndexMap.map(index => row[index]));
+
+    const newSpreadsheet = SpreadsheetApp.create(`Filtered Masterlist - ${new Date().toLocaleDateString()}`);
+    const newSheet = newSpreadsheet.getSheets()[0];
+    
+    newSheet.getRange(1, 1, 1, finalHeaders.length).setValues([finalHeaders]);
+    
+    if (finalRows.length > 0) {
+        newSheet.getRange(2, 1, finalRows.length, finalRows[0].length).setValues(finalRows);
+    }
+    
+    newSheet.setFrozenRows(1);
+    newSheet.autoResizeColumns(1, finalHeaders.length);
+    
+    // --- THIS IS THE FIX ---
+    // Get the file and move it to the specified folder
+    const file = DriveApp.getFileById(newSpreadsheet.getId());
+    const folder = DriveApp.getFolderById(MASTERLIST_EXPORT_FOLDER_ID);
+    file.moveTo(folder);
+    
+    return newSpreadsheet.getUrl();
+
+  } catch (e) {
+    Logger.log(`Error in generateFilteredMasterlist: ${e.toString()}`);
+    throw new Error(`Failed to generate masterlist. Error: ${e.message}`);
   }
 }
