@@ -4,13 +4,35 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interactive Organizational Chart</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/jspdf-autotable@latest/dist/jspdf.plugin.autotable.js"></script>
+
+  <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+  
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+  
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.colVis.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
   <style>
     body {
       background-color: #f7fafc;
@@ -354,6 +376,7 @@
       transform: translateY(-4px);
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
+    
   </style>
 </head>
 <body>
@@ -511,7 +534,6 @@
         <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
         <label for="show-inactive-checkbox" class="ml-2 block text-sm font-medium text-gray-700">Show Inactive Positions</label>
       </div>
-      <button id="generate-masterlist-btn" onclick="generateMasterlist()" class="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700">Generate Masterlist</button>
       <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
     </div>
   </div>
@@ -523,6 +545,7 @@
       <div onclick="switchTab('demographics')" id="tab-demographics" class="tab">Demographics</div>
       <div onclick="switchTab('resignation')" id="tab-resignation" class="tab">Resignation</div>
       <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab">Employee Movement</div>
+      <div onclick="switchTab('masterlist')" id="tab-masterlist" class="tab">Masterlist</div>
     </nav>
   </div>
 
@@ -848,7 +871,7 @@
         </div>
     </div>
   </div>
-  
+
   <!-- Employee Movement View -->
 <div id="employee-movement-view" class="tab-content">
     <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
@@ -934,6 +957,48 @@
     </div>
   </div>
 
+<div id="masterlist-view" class="tab-content">
+    <div class="p-4 sm:p-6 rounded-lg mb-6 bg-white shadow-md">
+        <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Division</label>
+                <div id="masterlist-Division-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Group</label>
+                <div id="masterlist-Group-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Department</label>
+                <div id="masterlist-Department-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Section</label>
+                <div id="masterlist-Section-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Level</label>
+                <div id="masterlist-JobLevel-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Gender</label>
+                <div id="masterlist-Gender-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Job Title</label>
+                <div id="masterlist-JobTitle-filter-container" class="searchable-dropdown mt-1"></div>
+            </div>
+        </div>
+        <div class="flex justify-end items-center gap-4 mt-4">
+    <button id="masterlist-reset-filters-btn" class="bg-slate-700 text-white py-2 px-4 rounded-lg hover:bg-slate-800">Reset Filters</button>
+    <button id="masterlist-apply-filters-btn" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">Apply Filters</button>
+</div>
+    </div>
+    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+        <table id="masterlist-table" class="display responsive nowrap" style="width:100%">
+            </table>
+    </div>
+  </div>
 </div> <!-- Close app -->
 
 <script>
@@ -957,6 +1022,10 @@
   var dataTable;
   var currentZoom = 1.0;
   var tooltipTimeout;
+  var masterlistDataLoaded = false;
+  var masterlistFiltersPopulated = false;
+  var masterlistDataTable; 
+  var masterlistFilterState = {};
 
   // --- CONSTANTS & CONFIG ---
   var levelColors = { 1: '#000000', 2: '#f56565', 3: '#4299e1', 4: '#48bb78', 5: '#9f7aea', 6: '#ed8936', 'default': '#a0aec0' };
@@ -987,41 +1056,38 @@
     { id: 'section', containerId: 'movement-section-filter-container', valueId: 'movement-section-filter-value', defaultLabel: 'All Sections', parent: 'department' }
   ];
 
+  const MASTERLIST_FILTERS_CONFIG = [
+    { id: 'Division', containerId: 'masterlist-Division-filter-container', defaultLabel: 'All Divisions', parent: null },
+    { id: 'Group', containerId: 'masterlist-Group-filter-container', defaultLabel: 'All Groups', parent: 'Division' },
+    { id: 'Department', containerId: 'masterlist-Department-filter-container', defaultLabel: 'All Departments', parent: 'Group' },
+    { id: 'Section', containerId: 'masterlist-Section-filter-container', defaultLabel: 'All Sections', parent: 'Department' }
+];
+
   // --- INITIALIZATION ---
   google.charts.load('current', { packages: ['orgchart', 'corechart'] });
   google.charts.setOnLoadCallback(fetchData);
 
-  function switchTab(tabId) {
-    const activeClass = 'active';
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove(activeClass));
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove(activeClass));
+function switchTab(tabId) {
+  const activeClass = 'active';
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove(activeClass));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove(activeClass));
 
-    document.getElementById(`${tabId}-view`).classList.add(activeClass);
-    document.getElementById(`tab-${tabId}`).classList.add(activeClass);
+  document.getElementById(`${tabId}-view`).classList.add(activeClass);
+  document.getElementById(`tab-${tabId}`).classList.add(activeClass);
 
-    if (tabId === 'demographics') {
-      if (!analyticsFiltersPopulated) {
-        populateAnalyticsFilters();
-      }
-      if (!analyticsDataLoaded) {
-        drawAnalyticsCharts();
-      }
-    } else if (tabId === 'resignation') {
-        if (!resignationFiltersPopulated) {
-            populateResignationFilters();
-        }
-        if (!resignationDataLoaded) {
-            drawResignationCharts();
-        }
-    } else if (tabId === 'employee-movement') {
-        if (!movementFiltersPopulated) {
-            populateMovementFilters();
-        }
-        if (!employeeMovementDataLoaded) {
-            drawEmployeeMovementCharts();
-        }
-    }
+  if (tabId === 'demographics' && !analyticsDataLoaded) {
+      if (!analyticsFiltersPopulated) populateAnalyticsFilters();
+      drawAnalyticsCharts();
+  } else if (tabId === 'resignation' && !resignationDataLoaded) {
+      if (!resignationFiltersPopulated) populateResignationFilters();
+      drawResignationCharts();
+  } else if (tabId === 'employee-movement' && !employeeMovementDataLoaded) {
+      if (!movementFiltersPopulated) populateMovementFilters();
+      drawEmployeeMovementCharts();
+  } else if (tabId === 'masterlist' && !masterlistDataLoaded) {
+      initializeMasterlist();
   }
+}
   
   function populateAnalyticsFilters() {
       let sourceData = fullEmployeeData;
@@ -1708,27 +1774,6 @@
             document.getElementById('employee-movement-view').innerHTML = `<p class="text-red-500">Could not load employee movement data. Error: ${err.message}</p>`;
         })
         .getEmployeeMovementData(filters);
-  }
-
-  function generateMasterlist() {
-    showSavingOverlay();
-    const savingText = document.getElementById('saving-text');
-    savingText.textContent = 'Generating Masterlist...';
-
-    google.script.run
-      .withSuccessHandler(function(url) {
-        hideSavingOverlay();
-        if (url) {
-          window.open(url, '_blank');
-        } else {
-          alert('Could not generate masterlist. The backend returned an empty URL.');
-        }
-      })
-      .withFailureHandler(function(err) {
-        hideSavingOverlay();
-        alert('Failed to generate masterlist: ' + err.message);
-      })
-      .generateMasterlistSheet();
   }
 
   function showLoader() { document.getElementById('loader-container').style.display = 'flex'; }
@@ -2978,9 +3023,9 @@ function closeJdModal() {
     modal.style.display = 'none';
 }
 
-function showSavingOverlay() {
+function showSavingOverlay(message) {
   const savingText = document.getElementById('saving-text');
-  savingText.textContent = 'Saving...';
+  savingText.textContent = message || 'Saving...'; // Use the message or default to "Saving..."
   document.getElementById('saving-overlay').style.display = 'flex';
 }
 
@@ -3279,6 +3324,182 @@ function createSearchableDropdown(containerId, items, displayKey, valueKey, onSe
     if (input) input.value = value || '';
     if (hiddenInput) hiddenInput.value = value || '';
   }
+
+function initializeMasterlist() {
+        if (masterlistFiltersPopulated) return;
+
+        MASTERLIST_FILTERS_CONFIG.forEach(config => {
+            masterlistFilterState[config.id] = 'All';
+        });
+        const nonDependentFilters = ['Job Level', 'Gender', 'Job Title'];
+        nonDependentFilters.forEach(filterName => {
+            masterlistFilterState[filterName.replace(/\s/g, '')] = 'All';
+        });
+
+        populateMasterlistFilters();
+
+        document.getElementById('masterlist-reset-filters-btn').addEventListener('click', () => {
+            Object.keys(masterlistFilterState).forEach(key => masterlistFilterState[key] = 'All');
+            populateMasterlistFilters();
+            drawMasterlistTable(true); // Reset should immediately redraw
+        });
+
+        // --- NEW: Event listener for the Apply button ---
+        document.getElementById('masterlist-apply-filters-btn').addEventListener('click', () => {
+            drawMasterlistTable(true);
+        });
+        
+        masterlistFiltersPopulated = true;
+        drawMasterlistTable();
+    }
+
+    function populateMasterlistFilters() {
+        let sourceData = fullEmployeeData;
+
+        MASTERLIST_FILTERS_CONFIG.forEach(config => {
+            const currentValue = masterlistFilterState[config.id] || 'All';
+            const options = ['All', ...new Set(sourceData.map(e => e[config.id.toLowerCase()]).filter(String).sort())];
+            
+            createSearchableDropdown(config.containerId, options, null, null, (selection) => {
+                const newValue = (selection === 'All' || !selection) ? 'All' : selection;
+                
+                if (masterlistFilterState[config.id] !== newValue) {
+                    masterlistFilterState[config.id] = newValue;
+                    
+                    let childIdToReset = config.id;
+                    let childConfig = MASTERLIST_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                    while (childConfig) {
+                        masterlistFilterState[childConfig.id] = 'All';
+                        childIdToReset = childConfig.id;
+                        childConfig = MASTERLIST_FILTERS_CONFIG.find(f => f.parent === childIdToReset);
+                    }
+                    
+                    // --- REVISED: We only repopulate the dropdowns, we DON'T redraw the table ---
+                    populateMasterlistFilters();
+                }
+            });
+
+            setSearchableDropdownValue(config.containerId, currentValue);
+
+            if (currentValue !== 'All') {
+                sourceData = sourceData.filter(emp => emp[config.id.toLowerCase()] === currentValue);
+            }
+        });
+
+        const nonDependentFilters = ['Job Level', 'Gender', 'Job Title'];
+        nonDependentFilters.forEach(filterName => {
+            const listKey = filterName.toLowerCase().replace(/\s/g, '');
+            const idSafeFilterName = filterName.replace(/\s/g, '');
+            const options = ['All', ...(dropdownListData[listKey] || [])];
+
+            createSearchableDropdown(`masterlist-${idSafeFilterName}-filter-container`, options, null, null, (selection) => {
+                const newValue = (selection === 'All' || !selection) ? 'All' : selection;
+                masterlistFilterState[idSafeFilterName] = newValue;
+                // --- REVISED: No automatic redraw here either ---
+            });
+            setSearchableDropdownValue(`masterlist-${idSafeFilterName}-filter-container`, masterlistFilterState[idSafeFilterName] || 'All');
+        });
+    }
+
+    function drawMasterlistTable(forceRefresh = false) {
+        if (masterlistDataLoaded && !forceRefresh) return;
+        showSavingOverlay('Loading Masterlist...');
+
+        // This function now reads from the state object, not the DOM
+        const filters = {
+            'Division': masterlistFilterState['Division'],
+            'Group': masterlistFilterState['Group'],
+            'Department': masterlistFilterState['Department'],
+            'Section': masterlistFilterState['Section'],
+            'Job Level': masterlistFilterState['JobLevel'],
+            'Gender': masterlistFilterState['Gender'],
+            'Job Title': masterlistFilterState['JobTitle']
+        };
+
+        google.script.run
+            .withSuccessHandler(data => {
+                if (!data || !data.headers) {
+                    hideSavingOverlay();
+                    alert('An unexpected error occurred. Please check logs.');
+                    return;
+                }
+                if (masterlistDataTable) {
+                    masterlistDataTable.destroy();
+                }
+                const table = $('#masterlist-table');
+                table.empty();
+
+                masterlistDataTable = table.DataTable({
+                    responsive: true,
+                    data: data.rows,
+                    columns: data.headers.map(h => ({ title: h })),
+                    dom: 'Bfrtip',
+                    buttons: [
+                        {
+                            extend: 'colvis',
+                            text: 'Show/Hide Columns'
+                        },
+                        {
+                            extend: 'pdfHtml5',
+                            text: 'Export as PDF',
+                            orientation: 'landscape',
+                            title: 'Employee Masterlist Export',
+                            exportOptions: {
+                                columns: ':visible'
+                            }
+                        },
+                        {
+                            text: 'Export as Sheet',
+                            action: function ( e, dt, node, config ) {
+                                exportFilteredSheet();
+                            }
+                        }
+                    ]
+                });
+                
+                masterlistDataLoaded = true;
+                hideSavingOverlay();
+            })
+            .withFailureHandler(err => {
+                hideSavingOverlay();
+                alert('Error loading masterlist: ' + err.message);
+            })
+            .getMasterlistData(filters);
+    }
+
+function exportFilteredSheet() {
+    if (!masterlistDataTable) {
+        alert("The masterlist table has not been loaded yet.");
+        return;
+    }
+    showSavingOverlay('Generating Sheet...');
+
+    const filters = {
+        'Division': document.querySelector('#masterlist-Division-filter-container .searchable-dropdown-input').value,
+        'Group': document.querySelector('#masterlist-Group-filter-container .searchable-dropdown-input').value,
+        'Department': document.querySelector('#masterlist-Department-filter-container .searchable-dropdown-input').value,
+        'Section': document.querySelector('#masterlist-Section-filter-container .searchable-dropdown-input').value,
+        'Job Level': document.querySelector('#masterlist-JobLevel-filter-container .searchable-dropdown-input').value,
+        'Gender': document.querySelector('#masterlist-Gender-filter-container .searchable-dropdown-input').value,
+        'Job Title': document.querySelector('#masterlist-JobTitle-filter-container .searchable-dropdown-input').value
+    };
+
+    const visibleColumns = [];
+    masterlistDataTable.columns(':visible').every(function() {
+        visibleColumns.push( $(this.header()).text() );
+    });
+
+    google.script.run
+        .withSuccessHandler(url => {
+            hideSavingOverlay();
+            window.open(url, '_blank');
+        })
+        .withFailureHandler(err => {
+            hideSavingOverlay();
+            alert('Error generating sheet: ' + err.message);
+        })
+        .generateFilteredMasterlist({filters: filters, visibleColumns: visibleColumns});
+}
 </script>
 </body>
 </html>
