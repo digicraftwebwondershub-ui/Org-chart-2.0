@@ -3,7 +3,7 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Organizational Chart</title>
+  <title>Uratex Workforce Intelligence & Analytics Hub</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -381,6 +381,24 @@
 </head>
 <body>
 
+<div id="login-view" class="min-h-screen flex flex-col items-center justify-center bg-slate-200 p-4">
+  <div class="w-full max-w-md text-center">
+    <h1 class="text-4xl font-bold text-slate-800">HR Analytics Dashboard</h1>
+    <p class="mt-2 text-slate-600">Please log in with your corporate Google account to continue.</p>
+    <div id="login-button-container" class="mt-8">
+      </div>
+  </div>
+</div>
+
+<div id="denied-view" style="display: none;" class="min-h-screen flex flex-col items-center justify-center bg-red-100 p-4">
+  <div class="w-full max-w-md text-center">
+    <h1 class="text-4xl font-bold text-red-800">Access Denied</h1>
+    <p class="mt-2 text-red-700">Your account (<span id="denied-email" class="font-bold"></span>) is not authorized to access this application. Please contact your administrator.</p>
+  </div>
+</div>
+
+<div id="app-view" style="display: none;">
+
 <div id="saving-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 9998; flex-direction: column; align-items: center; justify-content: center;">
   <div id="loader"></div>
   <p id="saving-text" class="text-white text-lg font-bold mt-4">Saving...</p>
@@ -526,9 +544,41 @@
 
 <div id="custom-tooltip" onmouseover="clearTimeout(tooltipTimeout)" onmouseout="hideTooltip()"></div>
 
-<div id="app" class="p-4 sm:p-6 md:p-8">
+<header class="bg-blue-800 shadow-md p-4 flex justify-center items-center sticky top-0 z-40">
+  <h1 class="text-2xl font-bold text-white">Uratex Workforce Intelligence and Analytics Hub</h1>
+  <div id="user-info" class="text-sm text-slate-200 absolute right-4"></div>
+</header>
+
+<main class="p-4 sm:p-6 md:p-8">
+
+  <div id="homepage-view">
+  <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Gandang Gising!</h2>
+  <div class="flex justify-center">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+
+    <div onclick="navigateToTab('org-chart')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80">
+      <svg class="h-24 w-24 mb-4 text-blue-600" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962A3.75 3.75 0 0112 15.75v-1.5m3.75 0a3.75 3.75 0 01-7.5 0v-1.5a3.75 3.75 0 017.5 0v1.5m-7.5 0h7.5m-7.5 0a3.75 3.75 0 01-3.75-3.75v-1.5a3.75 3.75 0 013.75-3.75h7.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75M3 13.5a3.75 3.75 0 013.75-3.75h1.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75h-1.5a3.75 3.75 0 01-3.75-3.75v-1.5z" />
+      </svg>
+      <h3 class="font-bold text-lg text-slate-800">Organizational Chart</h3>
+      <p class="text-sm text-slate-500 mt-1">Visualize company structure and reporting lines.</p>
+    </div>
+
+    <div onclick="navigateToTab('recruitment')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80">
+      <svg class="h-24 w-24 mb-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      </svg>
+      <h3 class="font-bold text-lg text-slate-800">Recruitment Report</h3>
+      <p class="text-sm text-slate-500 mt-1">Analyze your hiring pipeline and source performance.</p>
+    </div>
+
+  </div>
+</div>
+
+<div id="tab-area" style="display:none;">
+
   <div class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-bold text-slate-800">Interactive Organizational Chart</h1>
+    <h1 class="text-3xl font-bold text-slate-800">Uratex Workforce Intelligence & Analytics Hub</h1>
     <div class="flex items-center space-x-4">
       <div class="flex items-center">
         <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
@@ -541,11 +591,14 @@
   <!-- Tab Navigation -->
   <div class="border-b border-gray-200 mb-6">
     <nav class="flex -mb-px" aria-label="Tabs">
+      <div onclick="showHomepage()" class="tab cursor-pointer">Home</div> <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab">Org Chart</div>
+      ```
       <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active">Org Chart</div>
       <div onclick="switchTab('demographics')" id="tab-demographics" class="tab">Demographics</div>
       <div onclick="switchTab('resignation')" id="tab-resignation" class="tab">Resignation</div>
       <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab">Employee Movement</div>
       <div onclick="switchTab('masterlist')" id="tab-masterlist" class="tab">Masterlist</div>
+      <div onclick="switchTab('predictive')" id="tab-predictive" class="tab">Predictive Insights</div>
     </nav>
   </div>
 
@@ -1042,6 +1095,67 @@
   </div>
 </div> <!-- Close app -->
 
+<!-- Predictive View -->
+<div id="predictive-view" class="tab-content">
+    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+      <h2 class="text-2xl font-bold text-slate-800 mb-4">Employee Attrition Risk</h2>
+      <p class="mb-6 text-sm text-gray-600">This report identifies current employees who may be at a higher risk of leaving, based on historical data. Factors include tenure, department turnover rates, and time since last role change.</p>
+      <div id="attrition-risk-loader" class="flex justify-center items-center h-48"><div id="loader"></div></div>
+      <div id="attrition-risk-content" style="display: none;">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk Level</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Key Factors</th>
+            </tr>
+          </thead>
+          <tbody id="attrition-risk-table-body" class="bg-white divide-y divide-gray-200">
+            </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+      <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-xl font-bold text-slate-800 mb-2">Time to Hire Prediction</h2>
+        <p class="mb-4 text-sm text-gray-600">Predicted number of days to fill a position based on historical averages.</p>
+        <div id="tth-prediction-loader" class="flex justify-center items-center h-48"><div id="loader"></div></div>
+        <div id="tth-prediction-content" style="display: none; max-height: 300px; overflow-y: auto;">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50 sticky top-0">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Predicted Time to Hire</th>
+              </tr>
+            </thead>
+            <tbody id="tth-prediction-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-xl font-bold text-slate-800 mb-2">Source Quality Prediction</h2>
+        <p class="mb-4 text-sm text-gray-600">Predicted hire rate for each recruitment source based on historical performance.</p>
+        <div id="source-quality-loader" class="flex justify-center items-center h-48"><div id="loader"></div></div>
+        <div id="source-quality-content" style="display: none; max-height: 300px; overflow-y: auto;">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50 sticky top-0">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Predicted Hire Rate</th>
+              </tr>
+            </thead>
+            <tbody id="source-quality-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+          </main>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 <script>
   // --- GLOBAL VARIABLES ---
   var analyticsDataLoaded = false;
@@ -1067,6 +1181,7 @@
   var masterlistFiltersPopulated = false;
   var masterlistDataTable; 
   var masterlistFilterState = {};
+  var predictiveDataLoaded = false;
 
   // --- CONSTANTS & CONFIG ---
   var levelColors = { 1: '#000000', 2: '#f56565', 3: '#4299e1', 4: '#48bb78', 5: '#9f7aea', 6: '#ed8936', 'default': '#a0aec0' };
@@ -1104,18 +1219,62 @@
     { id: 'Section', containerId: 'masterlist-Section-filter-container', defaultLabel: 'All Sections', parent: 'Department' }
 ];
 
-  // --- INITIALIZATION ---
-  google.charts.load('current', { packages: ['orgchart', 'corechart'] });
-  google.charts.setOnLoadCallback(fetchData);
+// --- START: NEW INITIALIZATION & LOGIN LOGIC ---
+document.addEventListener("DOMContentLoaded", function() {
+  const loginButtonContainer = document.getElementById('login-button-container');
+  loginButtonContainer.innerHTML = `
+    <div class="mt-8 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center">
+      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Authenticating...
+    </div>
+  `;
+  google.script.run.withSuccessHandler(handleLogin).checkUserAccess();
+});
+
+function handleLogin(response) {
+  if (response.isAuthorized) {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('app-view').style.display = 'block';
+    document.getElementById('user-info').textContent = 'Logged in as: ' + response.userEmail;
+    // Now that the user is logged in, load the chart libraries and fetch data
+    google.charts.load('current', { packages: ['orgchart', 'corechart'] });
+    google.charts.setOnLoadCallback(fetchData);
+  } else {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('denied-view').style.display = 'flex';
+    document.getElementById('denied-email').textContent = response.userEmail;
+  }
+}
+// --- END: NEW INITIALIZATION & LOGIN LOGIC ---
+
+// --- START: NEW NAVIGATION FUNCTIONS ---
+function showHomepage() {
+  document.getElementById('tab-area').style.display = 'none';
+  document.getElementById('homepage-view').style.display = 'block';
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelector('div.tab.cursor-pointer').classList.add('active');
+}
+
+function navigateToTab(tabId) {
+  document.getElementById('homepage-view').style.display = 'none';
+  document.getElementById('tab-area').style.display = 'block';
+  switchTab(tabId);
+}
+// --- END: NEW NAVIGATION FUNCTIONS ---
 
 function switchTab(tabId) {
+  google.script.run.logUserActivity('Viewed Tab: ' + tabId);
   const activeClass = 'active';
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove(activeClass));
-  document.querySelectorAll('.tab').forEach(el => el.classList.remove(activeClass));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
 
   document.getElementById(`${tabId}-view`).classList.add(activeClass);
   document.getElementById(`tab-${tabId}`).classList.add(activeClass);
 
+  // Your existing data-loading logic
   if (tabId === 'demographics' && !analyticsDataLoaded) {
       if (!analyticsFiltersPopulated) populateAnalyticsFilters();
       drawAnalyticsCharts();
@@ -1127,6 +1286,11 @@ function switchTab(tabId) {
       drawEmployeeMovementCharts();
   } else if (tabId === 'masterlist' && !masterlistDataLoaded) {
       initializeMasterlist();
+  } else if (tabId === 'predictive' && !predictiveDataLoaded) {
+      drawPredictiveInsights();
+      drawHiringPredictions();
+  } else if (tabId === 'adoption' && !adoptionDataLoaded) {
+      drawAdoptionDashboard();
   }
 }
   
@@ -3589,6 +3753,154 @@ function exportFilteredSheet() {
         })
         .generateFilteredMasterlist({filters: filters, visibleColumns: visibleColumns});
 }
+
+// --- START: NEW PREDICTIVE INSIGHTS SCRIPT ---
+
+function drawPredictiveInsights() {
+  predictiveDataLoaded = true;
+  document.getElementById('attrition-risk-loader').style.display = 'flex';
+  document.getElementById('attrition-risk-content').style.display = 'none';
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+      const tableBody = document.getElementById('attrition-risk-table-body');
+      tableBody.innerHTML = ''; // Clear previous results
+
+      if (data.error) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Error: ${data.error}</td></tr>`;
+      } else if (data.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No significant attrition risks identified based on current data.</td></tr>`;
+      } else {
+        data.forEach(employee => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${employee.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${employee.position}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${employee.department}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">${employee.score}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${employee.factors}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      document.getElementById('attrition-risk-loader').style.display = 'none';
+      document.getElementById('attrition-risk-content').style.display = 'block';
+    })
+    .withFailureHandler(function(err) {
+      const tableBody = document.getElementById('attrition-risk-table-body');
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Failed to load predictive data. Error: ${err.message}</td></tr>`;
+      document.getElementById('attrition-risk-loader').style.display = 'none';
+      document.getElementById('attrition-risk-content').style.display = 'block';
+    })
+    .getAttritionRiskData();
+}
+
+// --- END: NEW PREDICTIVE INSIGHTS SCRIPT ---
+
+// --- START: NEW PREDICTIVE INSIGHTS SCRIPT ---
+
+function drawPredictiveInsights() {
+  predictiveDataLoaded = true;
+  document.getElementById('attrition-risk-loader').style.display = 'flex';
+  document.getElementById('attrition-risk-content').style.display = 'none';
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+      const tableBody = document.getElementById('attrition-risk-table-body');
+      tableBody.innerHTML = ''; 
+
+      if (data.error) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Error: ${data.error}</td></tr>`;
+      } else if (data.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No significant attrition risks identified based on current data.</td></tr>`;
+      } else {
+        data.forEach(employee => {
+          const row = document.createElement('tr');
+          let riskLevelHtml = '';
+          if (employee.score >= 5) {
+              riskLevelHtml = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">High</span>';
+          } else if (employee.score >= 3) {
+              riskLevelHtml = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Medium</span>';
+          } else {
+              riskLevelHtml = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Low</span>';
+          }
+
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${employee.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${employee.position}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${employee.department}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">${riskLevelHtml}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${employee.factors}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      document.getElementById('attrition-risk-loader').style.display = 'none';
+      document.getElementById('attrition-risk-content').style.display = 'block';
+    })
+    .withFailureHandler(function(err) {
+      const tableBody = document.getElementById('attrition-risk-table-body');
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Failed to load predictive data. Error: ${err.message}</td></tr>`;
+      document.getElementById('attrition-risk-loader').style.display = 'none';
+      document.getElementById('attrition-risk-content').style.display = 'block';
+    })
+    .getAttritionRiskData();
+}
+
+function drawHiringPredictions() {
+  document.getElementById('tth-prediction-loader').style.display = 'flex';
+  document.getElementById('tth-prediction-content').style.display = 'none';
+  document.getElementById('source-quality-loader').style.display = 'flex';
+  document.getElementById('source-quality-content').style.display = 'none';
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+      const tthTableBody = document.getElementById('tth-prediction-table-body');
+      tthTableBody.innerHTML = '';
+      if (data.error || Object.keys(data.timeToHire).length === 0) {
+        tthTableBody.innerHTML = `<tr><td colspan="2" class="text-center p-4 text-gray-500">No hiring data available to make predictions.</td></tr>`;
+      } else {
+        const sortedPositions = Object.entries(data.timeToHire).sort((a, b) => b[1] - a[1]);
+        sortedPositions.forEach(([position, days]) => {
+          const row = tthTableBody.insertRow();
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${position}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-bold">${days} days</td>
+          `;
+        });
+      }
+
+      const sourceTableBody = document.getElementById('source-quality-table-body');
+      sourceTableBody.innerHTML = '';
+      if (data.error || Object.keys(data.sourceQuality).length === 0) {
+        sourceTableBody.innerHTML = `<tr><td colspan="2" class="text-center p-4 text-gray-500">No source data available to make predictions.</td></tr>`;
+      } else {
+        const sortedSources = Object.entries(data.sourceQuality).sort((a, b) => b[1].rate - a[1].rate);
+        sortedSources.forEach(([source, stats]) => {
+          const row = sourceTableBody.insertRow();
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${source}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-bold">${stats.rate}% <span class="text-xs text-gray-500 font-normal">(${stats.hires}/${stats.applications} hires)</span></td>
+          `;
+        });
+      }
+
+      document.getElementById('tth-prediction-loader').style.display = 'none';
+      document.getElementById('tth-prediction-content').style.display = 'block';
+      document.getElementById('source-quality-loader').style.display = 'none';
+      document.getElementById('source-quality-content').style.display = 'block';
+    })
+    .withFailureHandler(err => {
+        document.getElementById('tth-prediction-table-body').innerHTML = `<tr><td colspan="2" class="text-center p-4 text-red-500">Error: ${err.message}</td></tr>`;
+        document.getElementById('source-quality-table-body').innerHTML = `<tr><td colspan="2" class="text-center p-4 text-red-500">Error: ${err.message}</td></tr>`;
+    })
+    .getHiringPredictions();
+}
+
+// --- END: NEW PREDICTIVE INSIGHTS SCRIPT ---
 </script>
+</div>
 </body>
 </html>
