@@ -2600,3 +2600,226 @@ function getDateOfBirth(employeeId) {
     return null;
   }
 }
+
+// --- START: NEW PREDICTIVE INSIGHTS FUNCTION ---
+
+// --- START: REVISED PREDICTIVE INSIGHTS FUNCTION (v2) ---
+
+function getAttritionRiskData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const mainSheet = ss.getSheets()[0];
+    const resignationSheet = ss.getSheetByName('Resignation Data');
+    const logSheet = ss.getSheetByName('change_log_sheet');
+
+    // 1. Get Current Employee & Log Data
+    const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+    const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+    const headerMap = new Map(headers.map((h, i) => [h.trim(), i]));
+    const currentEmployees = mainData.filter(row => row[headerMap.get('Employee ID')]);
+    
+    // Get historical log data for promotion/transfer analysis
+    let logData = [];
+    let logHeaderMap = new Map();
+    if (logSheet && logSheet.getLastRow() > 1) {
+        logData = logSheet.getRange(2, 1, logSheet.getLastRow() - 1, logSheet.getLastColumn()).getValues();
+        const logHeaders = logSheet.getRange(1, 1, 1, logSheet.getLastColumn()).getValues()[0];
+        logHeaderMap = new Map(logHeaders.map((h, i) => [h.trim(), i]));
+    }
+
+    // 2. Analyze Historical Resignation Data
+    let highTurnoverDepts = [];
+    if (resignationSheet && resignationSheet.getLastRow() > 1) {
+      const resignationData = resignationSheet.getDataRange().getValues();
+      const resHeaders = resignationData.shift();
+      const resDeptIndex = resHeaders.indexOf('Department');
+      const deptCounts = resignationData.reduce((acc, row) => {
+        const dept = row[resDeptIndex];
+        if (dept) acc[dept] = (acc[dept] || 0) + 1;
+        return acc;
+      }, {});
+      const turnoverThreshold = 3;
+      highTurnoverDepts = Object.keys(deptCounts).filter(dept => deptCounts[dept] >= turnoverThreshold);
+    }
+
+    // 3. Score Each Current Employee
+    const employeesAtRisk = [];
+    const today = new Date();
+
+    currentEmployees.forEach(row => {
+      let riskScore = 0;
+      let riskFactors = [];
+
+      const empId = row[headerMap.get('Employee ID')];
+      const dept = row[headerMap.get('Department')];
+      const dateHired = new Date(row[headerMap.get('Date Hired')]);
+      const contractType = row[headerMap.get('Contract Type')] || '';
+
+      // Factor 1: Tenure
+      if (!isNaN(dateHired)) {
+        const tenureMonths = (today.getFullYear() - dateHired.getFullYear()) * 12 + (today.getMonth() - dateHired.getMonth());
+        if (tenureMonths < 12) { riskScore += 3; riskFactors.push("Tenure < 1 Year"); } 
+        else if (tenureMonths < 24) { riskScore += 2; riskFactors.push("Tenure < 2 Years"); }
+      }
+      
+      // Factor 2: High-Turnover Department
+      if (highTurnoverDepts.includes(dept)) { riskScore += 2; riskFactors.push("High-Turnover Dept"); }
+
+      // Factor 3: Contract Type
+      if (contractType.toUpperCase() === 'JPRO') { riskScore += 3; riskFactors.push("JPRO Contract"); }
+
+      // Factor 4: Time Since Last Promotion/Movement
+      if (empId && logData.length > 0) {
+          const movementEvents = logData.filter(logRow => 
+              (logRow[logHeaderMap.get('Employee ID')] || '') == empId &&
+              ['PROMOTION', 'INTERNAL TRANSFER', 'LATERAL TRANSFER'].includes((logRow[logHeaderMap.get('Status')] || '').toUpperCase())
+          ).map(logRow => new Date(logRow[logHeaderMap.get('Effective Date')] || logRow[logHeaderMap.get('Change Timestamp')]))
+          .filter(date => !isNaN(date.getTime()));
+          
+          let lastEventDate = dateHired; // Default to hire date if no other movement
+          if (movementEvents.length > 0) {
+              lastEventDate = new Date(Math.max.apply(null, movementEvents));
+          }
+
+          if (!isNaN(lastEventDate)) {
+              const monthsSinceMovement = (today.getFullYear() - lastEventDate.getFullYear()) * 12 + (today.getMonth() - lastEventDate.getMonth());
+              if (monthsSinceMovement >= 36) {
+                  riskScore += 2;
+                  riskFactors.push("No Role Change > 3 Years");
+              }
+          }
+      }
+
+      if (riskScore > 2) { // Only show employees with a moderate to high risk score
+        employeesAtRisk.push({
+          name: row[headerMap.get('Employee Name')],
+          position: row[headerMap.get('Job Title')],
+          department: dept,
+          score: riskScore,
+          factors: riskFactors.join(', ')
+        });
+      }
+    });
+
+    employeesAtRisk.sort((a, b) => b.score - a.score);
+    return employeesAtRisk.slice(0, 20);
+
+  } catch (e) {
+    Logger.log('Error in getAttritionRiskData: ' + e.message);
+    return { error: e.message };
+  }
+}
+// --- END: REVISED PREDICTIVE INSIGHTS FUNCTION ---
+
+// --- START: NEW HIRING PREDICTIONS FUNCTION ---
+
+function getHiringPredictions() {
+  try {
+    const recruitmentSheetId = "1SfJbXTqtN5Bu7y4ikt0G-3hqiwZLIhezXqxv_zRxRFA"; // Make sure this is correct!
+    const spreadsheet = SpreadsheetApp.openById(recruitmentSheetId);
+    const sheet = spreadsheet.getSheets()[0];
+    
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { timeToHire: {}, sourceQuality: {} };
+    }
+    
+    const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const headerMap = new Map(headers.map((h, i) => [h.trim(), i]));
+
+    // 1. Calculate Average Time to Hire per Position
+    const timeToHireData = {};
+    allData.forEach(row => {
+      const position = row[headerMap.get('Position Applied For')];
+      const status = (row[headerMap.get('Application Status')] || '').toUpperCase();
+      const appDate = new Date(row[headerMap.get('Application Date')]);
+      const hireDate = new Date(row[headerMap.get('Hiring Date')]);
+
+      if (position && status === 'HIRED' && !isNaN(appDate) && !isNaN(hireDate)) {
+        const diffTime = Math.abs(hireDate - appDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (!timeToHireData[position]) {
+          timeToHireData[position] = { totalDays: 0, count: 0 };
+        }
+        timeToHireData[position].totalDays += diffDays;
+        timeToHireData[position].count++;
+      }
+    });
+    
+    const timeToHirePrediction = {};
+    for (const pos in timeToHireData) {
+      timeToHirePrediction[pos] = Math.round(timeToHireData[pos].totalDays / timeToHireData[pos].count);
+    }
+
+    // 2. Calculate Source Quality (Conversion Rate)
+    const sourceData = {};
+    allData.forEach(row => {
+        const source = row[headerMap.get('Source')];
+        const status = (row[headerMap.get('Application Status')] || '').toUpperCase();
+        if (source) {
+            if (!sourceData[source]) {
+                sourceData[source] = { applications: 0, hires: 0 };
+            }
+            sourceData[source].applications++;
+            if (status === 'HIRED') {
+                sourceData[source].hires++;
+            }
+        }
+    });
+
+    const sourceQualityPrediction = {};
+    for (const source in sourceData) {
+        const rate = (sourceData[source].hires / sourceData[source].applications) * 100;
+        sourceQualityPrediction[source] = {
+            rate: parseFloat(rate.toFixed(1)),
+            applications: sourceData[source].applications,
+            hires: sourceData[source].hires
+        };
+    }
+
+    return {
+      timeToHire: timeToHirePrediction,
+      sourceQuality: sourceQualityPrediction
+    };
+
+  } catch (e) {
+    Logger.log('Error in getHiringPredictions: ' + e.message);
+    return { error: e.message };
+  }
+}
+// --- END: NEW HIRING PREDICTIONS FUNCTION ---
+
+// --- START: NEW USER AUTHENTICATION FUNCTION ---
+
+/**
+ * Checks if the current user's email is in the 'Permissions' sheet.
+ * This acts as the secure gatekeeper for the web app.
+ * @returns {object} An object containing authorization status and user email.
+ */
+function checkUserAccess() {
+  try {
+    const userEmail = Session.getActiveUser().getEmail().toLowerCase();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const permissionsSheet = ss.getSheetByName('Permissions');
+    
+    if (!permissionsSheet) {
+      // If there's no Permissions sheet, deny access by default for security.
+      return { isAuthorized: false, userEmail: userEmail };
+    }
+
+    const emailColumn = permissionsSheet.getRange("A2:A").getValues();
+    const authorizedEmails = new Set(emailColumn.flat().map(email => String(email).trim().toLowerCase()).filter(String));
+
+    if (authorizedEmails.has(userEmail)) {
+      return { isAuthorized: true, userEmail: userEmail };
+    } else {
+      return { isAuthorized: false, userEmail: userEmail };
+    }
+  } catch (e) {
+    Logger.log('Error in checkUserAccess: ' + e.message);
+    return { isAuthorized: false, error: e.message };
+  }
+}
+
+// --- END: NEW USER AUTHENTICATION FUNCTION ---
