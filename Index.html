@@ -636,12 +636,12 @@
 
   <div class="flex justify-between items-center mb-6">
     <h1 id="main-title" class="text-3xl font-bold text-slate-800">Uratex Workforce Intelligence & Analytics Hub</h1>
-    <div class="flex items-center space-x-4">
-      <div class="flex items-center">
-        <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-        <label for="show-inactive-checkbox" class="ml-2 block text-sm font-medium text-gray-700">Show Inactive Positions</label>
-      </div>
-      <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
+    <div id="header-controls" class="flex items-center space-x-4 ml-auto">
+        <div class="flex items-center">
+            <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            <label for="show-inactive-checkbox" class="ml-2 block text-sm font-medium text-gray-700">Show Inactive Positions</label>
+        </div>
+        <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
     </div>
   </div>
 
@@ -1319,6 +1319,10 @@ function navigateToView(viewType, defaultTabId) {
   // Control visibility of the main title and tab navigation bar
   const mainTitle = document.getElementById('main-title');
   const tabNav = document.getElementById('tab-navigation');
+  const headerControls = document.getElementById('header-controls');
+
+  // Show controls ONLY for org chart view
+  headerControls.style.display = (viewType === 'org') ? 'flex' : 'none';
 
   if (viewType === 'org' || viewType === 'predictive') {
     mainTitle.style.display = 'none';
