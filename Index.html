@@ -563,7 +563,7 @@
   <div id="homepage-view">
     <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Gandang Gising!</h2>
     <div class="flex justify-center">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
 
         <!-- Organizational Chart Card -->
         <div onclick="navigateToView('org', 'org-chart')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
@@ -581,6 +581,15 @@
           </svg>
           <h3 class="font-bold text-lg text-slate-800">HR Data Analytics</h3>
           <p class="text-sm text-slate-500 mt-1">Explore demographics, resignation trends, and employee movement.</p>
+        </div>
+
+        <!-- Recruitment Card (Disabled) -->
+        <div class="dashboard-card bg-gray-100 rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-not-allowed opacity-60">
+          <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.5 22.5c-2.996 0-5.717-.93-7.962-2.565z" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-600">Recruitment</h3>
+          <p class="text-sm text-slate-400 mt-1">Analyze hiring pipeline and source performance. (Coming Soon)</p>
         </div>
         
         <!-- Training and Development Card (Disabled) -->
@@ -636,12 +645,12 @@
 
   <div class="flex justify-between items-center mb-6">
     <h1 id="main-title" class="text-3xl font-bold text-slate-800">Uratex Workforce Intelligence & Analytics Hub</h1>
-    <div class="flex items-center space-x-4">
-      <div class="flex items-center">
-        <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-        <label for="show-inactive-checkbox" class="ml-2 block text-sm font-medium text-gray-700">Show Inactive Positions</label>
-      </div>
-      <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
+    <div id="header-controls" class="flex items-center space-x-4 ml-auto">
+        <div class="flex items-center">
+            <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            <label for="show-inactive-checkbox" class="ml-2 block text-sm font-medium text-gray-700">Show Inactive Positions</label>
+        </div>
+        <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
     </div>
   </div>
 
@@ -1319,6 +1328,10 @@ function navigateToView(viewType, defaultTabId) {
   // Control visibility of the main title and tab navigation bar
   const mainTitle = document.getElementById('main-title');
   const tabNav = document.getElementById('tab-navigation');
+  const headerControls = document.getElementById('header-controls');
+
+  // Show controls ONLY for org chart view
+  headerControls.style.display = (viewType === 'org') ? 'flex' : 'none';
 
   if (viewType === 'org' || viewType === 'predictive') {
     mainTitle.style.display = 'none';
