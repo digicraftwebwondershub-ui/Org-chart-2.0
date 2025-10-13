@@ -544,7 +544,6 @@
 
 <div id="custom-tooltip" onmouseover="clearTimeout(tooltipTimeout)" onmouseout="hideTooltip()"></div>
 
-<div class="min-h-full">
 <header class="bg-blue-800 shadow-md p-4 flex justify-between items-center sticky top-0 z-40">
   <div class="w-1/3">
     <button onclick="showHomepage()" title="Go to Homepage" class="text-white hover:bg-blue-700 rounded-full p-2">
@@ -559,26 +558,23 @@
   </div>
 </header>
 
-<main class="py-10">
+<main class="p-4 sm:p-6 md:p-8">
 
-  </div>
-</div>
-
-<div id="homepage-view">
+  <div id="homepage-view">
   <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Gandang Gising!</h2>
   <div class="flex justify-center">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
 
-      <div onclick="showOrgChartView()" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
-        <svg class="h-24 w-24 mb-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <div onclick="navigateToView('org', 'org-chart')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+        <svg class="h-24 w-24 mb-4 text-blue-600" xmlns="[http://www.w.org/2000/svg](http://www.w.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962A3.75 3.75 0 0112 15.75v-1.5m3.75 0a3.75 3.75 0 01-7.5 0v-1.5a3.75 3.75 0 017.5 0v1.5m-7.5 0h7.5m-7.5 0a3.75 3.75 0 01-3.75-3.75v-1.5a3.75 3.75 0 013.75-3.75h7.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75M3 13.5a3.75 3.75 0 013.75-3.75h1.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75h-1.5a3.75 3.75 0 01-3.75-3.75v-1.5z" />
         </svg>
         <h3 class="font-bold text-lg text-slate-800">Organizational Chart</h3>
         <p class="text-sm text-slate-500 mt-1">Visualize company structure and reporting lines.</p>
       </div>
 
-      <div onclick="showReportsView()" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
-        <svg class="h-24 w-24 mb-4 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <div onclick="navigateToView('reports', 'demographics')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+        <svg class="h-24 w-24 mb-4 text-teal-600" xmlns="[http://www.w.org/2000/svg](http://www.w.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
         <h3 class="font-bold text-lg text-slate-800">Recruitment Report</h3>
@@ -605,12 +601,12 @@
   <!-- Tab Navigation -->
   <div class="border-b border-gray-200 mb-6">
   <nav class="flex -mb-px" aria-label="Tabs">
-    <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active">Org Chart</div>
-    <div onclick="switchTab('demographics')" id="tab-demographics" class="tab">Demographics</div>
-    <div onclick="switchTab('resignation')" id="tab-resignation" class="tab">Resignation</div>
-    <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab">Employee Movement</div>
-    <div onclick="switchTab('masterlist')" id="tab-masterlist" class="tab">Masterlist</div>
-    <div onclick="switchTab('predictive')" id="tab-predictive" class="tab">Predictive Insights</div>
+    <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active org-view-tab">Org Chart</div>
+    <div onclick="switchTab('demographics')" id="tab-demographics" class="tab reports-view-tab">Demographics</div>
+    <div onclick="switchTab('resignation')" id="tab-resignation" class="tab reports-view-tab">Resignation</div>
+    <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab reports-view-tab">Employee Movement</div>
+    <div onclick="switchTab('masterlist')" id="tab-masterlist" class="tab reports-view-tab">Masterlist</div>
+    <div onclick="switchTab('predictive')" id="tab-predictive" class="tab reports-view-tab">Predictive Insights</div>
   </nav>
 </div>
 
@@ -1163,12 +1159,9 @@
             <tbody id="source-quality-table-body" class="bg-white divide-y divide-gray-200"></tbody>
           </table>
           </div>
-          </div>
         </div>
       </div>
     </div>
-  </div>
-</main>
 <script>
   // --- GLOBAL VARIABLES ---
   var analyticsDataLoaded = false;
@@ -1270,43 +1263,35 @@ function showHomepage() {
   document.getElementById('homepage-view').style.display = 'block';
 }
 
-function showOrgChartView() {
-  // 1. Hide the homepage and show the main app area
+// ADD THIS NEW FUNCTION
+
+function navigateToView(viewType, defaultTabId) {
+  // Show the main tab container and hide the homepage
   document.getElementById('homepage-view').style.display = 'none';
   document.getElementById('tab-area').style.display = 'block';
 
-  // 2. Explicitly show ONLY the Org Chart tab
-  document.getElementById('tab-org-chart').style.display = 'flex';
+  // Get all tab elements
+  const allTabs = document.querySelectorAll('#tab-area .tab');
 
-  // 3. Explicitly hide ALL other tabs
-  document.getElementById('tab-demographics').style.display = 'none';
-  document.getElementById('tab-resignation').style.display = 'none';
-  document.getElementById('tab-employee-movement').style.display = 'none';
-  document.getElementById('tab-masterlist').style.display = 'none';
-  document.getElementById('tab-predictive').style.display = 'none';
+  // Loop through all tabs and set their display style directly
+  allTabs.forEach(tab => {
+    const isOrgTab = tab.classList.contains('org-view-tab');
+    const isReportTab = tab.classList.contains('reports-view-tab');
 
-  // 4. Activate the Org Chart tab content
-  switchTab('org-chart');
+    if (viewType === 'org') {
+      // If we are in 'org' view, show org tabs and hide report tabs
+      tab.style.display = isOrgTab ? 'flex' : 'none';
+    } else if (viewType === 'reports') {
+      // If we are in 'reports' view, show report tabs and hide org tabs
+      tab.style.display = isReportTab ? 'flex' : 'none';
+    }
+  });
+
+  // Switch to the correct starting tab for the selected view
+  switchTab(defaultTabId);
 }
 
-function showReportsView() {
-  // 1. Hide the homepage and show the main app area
-  document.getElementById('homepage-view').style.display = 'none';
-  document.getElementById('tab-area').style.display = 'block';
-
-  // 2. Explicitly hide the Org Chart tab
-  document.getElementById('tab-org-chart').style.display = 'none';
-
-  // 3. Explicitly show ALL of the report tabs
-  document.getElementById('tab-demographics').style.display = 'flex';
-  document.getElementById('tab-resignation').style.display = 'flex';
-  document.getElementById('tab-employee-movement').style.display = 'flex';
-  document.getElementById('tab-masterlist').style.display = 'flex';
-  document.getElementById('tab-predictive').style.display = 'flex';
-
-  // 4. Activate the Demographics tab as the default for this view
-  switchTab('demographics');
-}
+// --- END: NEW NAVIGATION FUNCTIONS ---
 
 function switchTab(tabId) {
   google.script.run.logUserActivity('Viewed Tab: ' + tabId);
