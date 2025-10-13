@@ -561,29 +561,76 @@
 <main class="p-4 sm:p-6 md:p-8">
 
   <div id="homepage-view">
-  <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Gandang Gising!</h2>
-  <div class="flex justify-center">
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+    <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Gandang Gising!</h2>
+    <div class="flex justify-center">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
-      <div onclick="navigateToView('org', 'org-chart')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
-        <svg class="h-24 w-24 mb-4 text-blue-600" xmlns="[http://www.w.org/2000/svg](http://www.w.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962A3.75 3.75 0 0112 15.75v-1.5m3.75 0a3.75 3.75 0 01-7.5 0v-1.5a3.75 3.75 0 017.5 0v1.5m-7.5 0h7.5m-7.5 0a3.75 3.75 0 01-3.75-3.75v-1.5a3.75 3.75 0 013.75-3.75h7.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75M3 13.5a3.75 3.75 0 013.75-3.75h1.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75h-1.5a3.75 3.75 0 01-3.75-3.75v-1.5z" />
-        </svg>
-        <h3 class="font-bold text-lg text-slate-800">Organizational Chart</h3>
-        <p class="text-sm text-slate-500 mt-1">Visualize company structure and reporting lines.</p>
+        <!-- Organizational Chart Card -->
+        <div onclick="navigateToView('org', 'org-chart')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+          <svg class="h-24 w-24 mb-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962A3.75 3.75 0 0112 15.75v-1.5m3.75 0a3.75 3.75 0 01-7.5 0v-1.5a3.75 3.75 0 017.5 0v1.5m-7.5 0h7.5m-7.5 0a3.75 3.75 0 01-3.75-3.75v-1.5a3.75 3.75 0 013.75-3.75h7.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75M3 13.5a3.75 3.75 0 013.75-3.75h1.5a3.75 3.75 0 013.75 3.75v1.5a3.75 3.75 0 01-3.75 3.75h-1.5a3.75 3.75 0 01-3.75-3.75v-1.5z" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-800">Organizational Chart</h3>
+          <p class="text-sm text-slate-500 mt-1">Visualize company structure and reporting lines.</p>
+        </div>
+
+        <!-- HR Data Analytics Card -->
+        <div onclick="navigateToView('analytics', 'demographics')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+          <svg class="h-24 w-24 mb-4 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-800">HR Data Analytics</h3>
+          <p class="text-sm text-slate-500 mt-1">Explore demographics, resignation trends, and employee movement.</p>
+        </div>
+
+        <!-- Training and Development Card (Disabled) -->
+        <div class="dashboard-card bg-gray-100 rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-not-allowed opacity-60">
+          <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-600">Training and Development</h3>
+          <p class="text-sm text-slate-400 mt-1">Track learning progress and identify skill gaps. (Coming Soon)</p>
+        </div>
+
+        <!-- Employee Competency Card (Disabled) -->
+        <div class="dashboard-card bg-gray-100 rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-not-allowed opacity-60">
+          <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-600">Employee Competency</h3>
+          <p class="text-sm text-slate-400 mt-1">Assess and manage employee skills and qualifications. (Coming Soon)</p>
+        </div>
+
+        <!-- Employee Engagement Card (Disabled) -->
+        <div class="dashboard-card bg-gray-100 rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-not-allowed opacity-60">
+          <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345h5.364c.518 0 .734.654.372 1.01l-4.36 3.176a.563.563 0 00-.182.557l1.652 5.023a.563.563 0 01-.84.622l-4.43-3.232a.563.563 0 00-.652 0l-4.43 3.232a.563.563 0 01-.84-.622l1.652-5.023a.563.563 0 00-.182-.557l-4.36-3.176a.563.563 0 01.372-1.01h5.364a.563.563 0 00.475-.345L11.48 3.5z" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-600">Employee Engagement</h3>
+          <p class="text-sm text-slate-400 mt-1">Measure and improve workforce satisfaction. (Coming Soon)</p>
+        </div>
+
+        <!-- Employee Commuting Card (Disabled) -->
+        <div class="dashboard-card bg-gray-100 rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-not-allowed opacity-60">
+          <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.37-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.875 5.69c-.381.19-.622.58-.622-1.006V15.18c0 .836.88 1.37 1.628 1.006l3.869-1.934c.317-.159.69-.159-1.006 0l4.875 2.437a1.125 1.125 0 001.006 0z" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-600">Employee Commuting</h3>
+          <p class="text-sm text-slate-400 mt-1">Analyze employee travel patterns and logistics. (Coming Soon)</p>
+        </div>
+
+        <!-- Predictive Insight Card -->
+        <div onclick="navigateToView('predictive', 'predictive')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+          <svg class="h-24 w-24 mb-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519 2.25 2.25 0 012.185 2.185.683.683 0 01-.546.636l-3.876 1.162A2.25 2.25 0 0016.5 21h-5.25a2.25 2.25 0 01-2.25-2.25V18m-3.375-3.375L1.5 15m0 0l3.375 3.375M1.5 15h16.5" />
+          </svg>
+          <h3 class="font-bold text-lg text-slate-800">Predictive Insight</h3>
+          <p class="text-sm text-slate-500 mt-1">Forecast attrition risk and analyze hiring trends.</p>
+        </div>
+
       </div>
-
-      <div onclick="navigateToView('reports', 'demographics')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
-        <svg class="h-24 w-24 mb-4 text-teal-600" xmlns="[http://www.w.org/2000/svg](http://www.w.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-        </svg>
-        <h3 class="font-bold text-lg text-slate-800">Recruitment Report</h3>
-        <p class="text-sm text-slate-500 mt-1">Analyze your hiring pipeline and source performance.</p>
-      </div>
-
     </div>
   </div>
-</div>
 
 <div id="tab-area" style="display:none;">
 
@@ -602,11 +649,11 @@
   <div class="border-b border-gray-200 mb-6">
   <nav class="flex -mb-px" aria-label="Tabs">
     <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active org-view-tab">Org Chart</div>
-    <div onclick="switchTab('demographics')" id="tab-demographics" class="tab reports-view-tab">Demographics</div>
-    <div onclick="switchTab('resignation')" id="tab-resignation" class="tab reports-view-tab">Resignation</div>
-    <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab reports-view-tab">Employee Movement</div>
-    <div onclick="switchTab('masterlist')" id="tab-masterlist" class="tab reports-view-tab">Masterlist</div>
-    <div onclick="switchTab('predictive')" id="tab-predictive" class="tab reports-view-tab">Predictive Insights</div>
+    <div onclick="switchTab('demographics')" id="tab-demographics" class="tab analytics-view-tab">Demographics</div>
+    <div onclick="switchTab('resignation')" id="tab-resignation" class="tab analytics-view-tab">Resignation</div>
+    <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab analytics-view-tab">Employee Movement</div>
+    <div onclick="switchTab('masterlist')" id="tab-masterlist" class="tab analytics-view-tab">Masterlist</div>
+    <div onclick="switchTab('predictive')" id="tab-predictive" class="tab predictive-view-tab">Predictive Insights</div>
   </nav>
 </div>
 
@@ -1266,35 +1313,34 @@ function showHomepage() {
 // ADD THIS NEW FUNCTION
 
 function navigateToView(viewType, defaultTabId) {
-  // Show the main tab container and hide the homepage
   document.getElementById('homepage-view').style.display = 'none';
   document.getElementById('tab-area').style.display = 'block';
 
-  // Get all tab elements
   const allTabs = document.querySelectorAll('#tab-area .tab');
+  const viewClassMap = {
+    'org': 'org-view-tab',
+    'analytics': 'analytics-view-tab',
+    'predictive': 'predictive-view-tab',
+    'reports': 'reports-view-tab'
+  };
 
-  // Loop through all tabs and set their display style directly
+  const targetClass = viewClassMap[viewType];
+
   allTabs.forEach(tab => {
-    const isOrgTab = tab.classList.contains('org-view-tab');
-    const isReportTab = tab.classList.contains('reports-view-tab');
-
-    if (viewType === 'org') {
-      // If we are in 'org' view, show org tabs and hide report tabs
-      tab.style.display = isOrgTab ? 'flex' : 'none';
-    } else if (viewType === 'reports') {
-      // If we are in 'reports' view, show report tabs and hide org tabs
-      tab.style.display = isReportTab ? 'flex' : 'none';
-    }
+    tab.style.display = tab.classList.contains(targetClass) ? 'flex' : 'none';
   });
 
-  // Switch to the correct starting tab for the selected view
   switchTab(defaultTabId);
 }
 
 // --- END: NEW NAVIGATION FUNCTIONS ---
 
 function switchTab(tabId) {
-  google.script.run.logUserActivity('Viewed Tab: ' + tabId);
+  try {
+    google.script.run.logUserActivity('Viewed Tab: ' + tabId);
+  } catch (e) {
+    console.error("Failed to log tab activity:", e);
+  }
   const activeClass = 'active';
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove(activeClass));
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
