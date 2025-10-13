@@ -582,7 +582,7 @@
           <h3 class="font-bold text-lg text-slate-800">HR Data Analytics</h3>
           <p class="text-sm text-slate-500 mt-1">Explore demographics, resignation trends, and employee movement.</p>
         </div>
-
+        
         <!-- Training and Development Card (Disabled) -->
         <div class="dashboard-card bg-gray-100 rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-not-allowed opacity-60">
           <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -635,7 +635,7 @@
 <div id="tab-area" style="display:none;">
 
   <div class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-bold text-slate-800">Uratex Workforce Intelligence & Analytics Hub</h1>
+    <h1 id="main-title" class="text-3xl font-bold text-slate-800">Uratex Workforce Intelligence & Analytics Hub</h1>
     <div class="flex items-center space-x-4">
       <div class="flex items-center">
         <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
@@ -647,7 +647,7 @@
 
   <!-- Tab Navigation -->
   <div class="border-b border-gray-200 mb-6">
-  <nav class="flex -mb-px" aria-label="Tabs">
+  <nav id="tab-navigation" class="flex -mb-px" aria-label="Tabs">
     <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active org-view-tab">Org Chart</div>
     <div onclick="switchTab('demographics')" id="tab-demographics" class="tab analytics-view-tab">Demographics</div>
     <div onclick="switchTab('resignation')" id="tab-resignation" class="tab analytics-view-tab">Resignation</div>
@@ -1315,6 +1315,22 @@ function showHomepage() {
 function navigateToView(viewType, defaultTabId) {
   document.getElementById('homepage-view').style.display = 'none';
   document.getElementById('tab-area').style.display = 'block';
+
+  // Control visibility of the main title and tab navigation bar
+  const mainTitle = document.getElementById('main-title');
+  const tabNav = document.getElementById('tab-navigation');
+
+  if (viewType === 'org' || viewType === 'predictive') {
+    mainTitle.style.display = 'none';
+    tabNav.style.display = 'none';
+  } else if (viewType === 'analytics') {
+    mainTitle.style.display = 'none';
+    tabNav.style.display = 'flex';
+  } else {
+    // Default for any other views
+    mainTitle.style.display = 'block';
+    tabNav.style.display = 'flex';
+  }
 
   const allTabs = document.querySelectorAll('#tab-area .tab');
   const viewClassMap = {
