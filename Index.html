@@ -19,7 +19,9 @@
   <script src="https://unpkg.com/jspdf-autotable@latest/dist/jspdf.plugin.autotable.js"></script>
 
   <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
-  
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
@@ -601,8 +603,8 @@
           <p class="text-sm text-slate-400 mt-1">Track learning progress and identify skill gaps. (Coming Soon)</p>
         </div>
 
-        <!-- Employee Competency Card (Disabled) -->
-        <div class="dashboard-card bg-gray-100 rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-not-allowed opacity-60">
+        <!-- Employee Competency Card -->
+        <div onclick="navigateToView('competency', 'competency')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
           <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
           </svg>
@@ -1157,6 +1159,34 @@
             </table>
     </div>
   </div>
+
+  <div id="competency-view" class="tab-content">
+    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">Employee Competency Profile</h2>
+        <div class="max-w-md">
+            <label for="competency-employee-select" class="block text-sm font-medium text-gray-700">Choose a Person</label>
+            <select id="competency-employee-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <option>Loading employees...</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="competency-charts-loader" class="flex justify-center items-center h-64 mt-8" style="display: none;"><div id="loader"></div></div>
+
+    <div id="competency-charts-container" class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8" style="display: none;">
+        <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Core Competencies</h3>
+            <canvas id="core-competency-chart"></canvas>
+        </div>
+        <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Leadership Competencies</h3>
+            <canvas id="leadership-competency-chart"></canvas>
+        </div>
+        <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md lg:col-span-2">
+            <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Technical Competencies</h3>
+            <canvas id="technical-competency-chart"></canvas>
+        </div>
+    </div>
 </div> <!-- Close app -->
 
 <!-- Predictive View -->
@@ -1298,6 +1328,7 @@
   var masterlistDataTable; 
   var masterlistFilterState = {};
   var predictiveDataLoaded = false;
+  var competencyViewInitialized = false;
 
   // --- CONSTANTS & CONFIG ---
   var levelColors = { 1: '#000000', 2: '#f56565', 3: '#4299e1', 4: '#48bb78', 5: '#9f7aea', 6: '#ed8936', 'default': '#a0aec0' };
@@ -1409,6 +1440,7 @@ function navigateToView(viewType, defaultTabId) {
     'analytics': 'analytics-view-tab',
     'predictive': 'predictive-view-tab',
     'reports': 'reports-view-tab'
+    'competency': 'competency-view-tab' // Add this line
   };
 
   const targetClass = viewClassMap[viewType];
@@ -1455,7 +1487,11 @@ function switchTab(tabId) {
       drawAdoptionDashboard();
   }
 }
-  
+      if (tabId === 'competency' && !competencyViewInitialized) {
+        initializeCompetencyView();
+    }
+
+
   function populateAnalyticsFilters() {
       let sourceData = fullEmployeeData;
       
@@ -4132,6 +4168,101 @@ function drawTalentInsights() {
       document.getElementById('talent-insights-content').style.display = 'block';
     })
     .getTalentAnalyticsData();
+}
+
+var chartInstances = {}; // To keep track of charts and destroy them before redrawing
+
+function initializeCompetencyView() {
+    competencyViewInitialized = true;
+    const select = document.getElementById('competency-employee-select');
+    select.innerHTML = '<option>Loading employees...</option>';
+
+    google.script.run.withSuccessHandler(employees => {
+        select.innerHTML = '<option value="">-- Select an Employee --</option>';
+        employees.forEach(emp => {
+            const option = document.createElement('option');
+            option.value = emp.code;
+            option.textContent = emp.name;
+            select.appendChild(option);
+        });
+    }).getCompetencyEmployeeList();
+
+    select.addEventListener('change', (event) => {
+        const employeeId = event.target.value;
+        if (employeeId) {
+            drawCompetencyCharts(employeeId);
+        } else {
+            document.getElementById('competency-charts-container').style.display = 'none';
+        }
+    });
+}
+
+function drawCompetencyCharts(employeeId) {
+    document.getElementById('competency-charts-loader').style.display = 'flex';
+    document.getElementById('competency-charts-container').style.display = 'none';
+
+    // Destroy previous charts if they exist to prevent flickering
+    Object.values(chartInstances).forEach(chart => chart.destroy());
+    chartInstances = {};
+
+    google.script.run.withSuccessHandler(profile => {
+        if (profile.error) {
+            alert('Error: ' + profile.error);
+            document.getElementById('competency-charts-loader').style.display = 'none';
+            return;
+        }
+
+        const createChart = (canvasId, title, data) => {
+            if (data.labels.length === 0) return; // Don't draw empty charts
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Individual Point',
+                        data: data.actual,
+                        fill: true,
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        borderColor: 'rgb(239, 68, 68)',
+                        pointBackgroundColor: 'rgb(239, 68, 68)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(239, 68, 68)'
+                    }, {
+                        label: 'Required Competency',
+                        data: data.required,
+                        fill: true,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(59, 130, 246)'
+                    }]
+                },
+                options: {
+                    elements: { line: { borderWidth: 3 } },
+                    scales: {
+                        r: {
+                            angleLines: { display: false },
+                            suggestedMin: 0,
+                            suggestedMax: 4,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        };
+
+        createChart('core-competency-chart', 'Core Competencies', profile.core);
+        createChart('leadership-competency-chart', 'Leadership Competencies', profile.leadership);
+        createChart('technical-competency-chart', 'Technical Competencies', profile.technical);
+
+        document.getElementById('competency-charts-loader').style.display = 'none';
+        document.getElementById('competency-charts-container').style.display = 'grid';
+
+    }).getEmployeeCompetencyProfile(employeeId);
 }
 
 </script>
