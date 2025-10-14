@@ -14,6 +14,8 @@ const JD_INCUMBENT_FOLDER_ID = '1ryXesBBwLs8Y1oEfLYDhDIxPQdeB_Ngx';
 // Defines the sequential order of approval roles
 const APPROVAL_ROLES = ['Prepared By', 'Reviewed By', 'Noted By', 'Approved By'];
 const MASTERLIST_EXPORT_FOLDER_ID = '1NcOH0Cx5lPRiRilGKkiO1tRiWn1d3P5q'; // <-- ADD THIS LINE
+const TALENT_DATA_SPREADSHEET_ID = '1sBy8d-uuenTRu_jeT7paTtDmnxcHFOjGgn-eEG91knY'; // <-- ADD THIS LINE
+const COMPETENCY_SPREADSHEET_ID = '1cj_RuroWG5Tl1OqzalyK7t4dLDck-7Ytj5O1eb-Ks5c'; // <-- ADD THIS LINE
 // --- END CONFIGURATION ---
 
 
@@ -2823,3 +2825,205 @@ function checkUserAccess() {
 }
 
 // --- END: NEW USER AUTHENTICATION FUNCTION ---
+
+/**
+ * =================================================================================================
+ * TALENT & SUCCESSION PLANNING FUNCTIONS (Reads from separate sheet)
+ * =================================================================================================
+ */
+
+/**
+ * Main function to get talent analytics. Reads employee data from the main hub
+ * and performance/succession data from the separate Talent Data spreadsheet.
+ * @returns {object} An object containing lists of employees for promotion, high potential, and succession.
+ */
+function getTalentAnalyticsData() {
+  try {
+    // Open both spreadsheets
+    const hubSs = SpreadsheetApp.getActiveSpreadsheet();
+    const talentSs = SpreadsheetApp.openById(TALENT_DATA_SPREADSHEET_ID);
+
+    // Get current active employees from the main hub sheet
+    const mainSheet = hubSs.getSheets()[0];
+    const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, mainSheet.getLastColumn()).getValues();
+    const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0];
+    const headerMap = new Map(headers.map((h, i) => [h.trim(), i]));
+    const currentEmployees = mainData.filter(row => row[headerMap.get('Employee ID')] && (row[headerMap.get('Position Status')] || '').toUpperCase() !== 'INACTIVE');
+
+    // Get performance data from the separate Talent Data sheet
+    const performanceSheet = talentSs.getSheetByName('Performance Data');
+    const performanceMap = new Map();
+    if (performanceSheet && performanceSheet.getLastRow() > 1) {
+      const perfData = performanceSheet.getRange(2, 1, performanceSheet.getLastRow() - 1, performanceSheet.getLastColumn()).getValues();
+      const perfHeader = performanceSheet.getRange(1, 1, 1, performanceSheet.getLastColumn()).getValues()[0];
+      const empIdIndex = perfHeader.indexOf('Employee ID');
+      const scoreIndex = perfHeader.indexOf('Overall Score (1-5)');
+      const competencyIndex = perfHeader.indexOf('Competency Score (1-5)');
+
+      perfData.forEach(row => {
+        const empId = row[empIdIndex];
+        if (empId) { // Store the most recent record for each employee
+          performanceMap.set(String(empId).trim(), {
+            overallScore: row[scoreIndex],
+            competencyScore: row[competencyIndex]
+          });
+        }
+      });
+    }
+
+    const promotionReady = [];
+    const highPotentials = [];
+    const today = new Date();
+
+    currentEmployees.forEach(row => {
+      const empId = String(row[headerMap.get('Employee ID')]).trim();
+      const performance = performanceMap.get(empId);
+      const dateHired = new Date(row[headerMap.get('Date Hired')]);
+      const tenureYears = !isNaN(dateHired) ? (today.getTime() - dateHired.getTime()) / (31557600000) : 0;
+
+      const employeeRecord = {
+          name: row[headerMap.get('Employee Name')],
+          jobTitle: row[headerMap.get('Job Title')],
+          department: row[headerMap.get('Department')],
+          tenure: tenureYears.toFixed(1) + ' years',
+          performance: 'N/A',
+          competency: 'N/A'
+      };
+
+      if (performance) {
+        employeeRecord.performance = performance.overallScore;
+        employeeRecord.competency = performance.competencyScore;
+
+        if (performance.overallScore >= 4 && performance.competencyScore >= 4 && tenureYears >= 1) {
+          promotionReady.push(employeeRecord);
+        }
+
+        if (performance.overallScore === 5 && performance.competencyScore === 5) {
+          highPotentials.push(employeeRecord);
+        }
+      }
+    });
+
+    // Get manually defined succession plan from the Talent Data sheet
+    const employeeNameMap = new Map(currentEmployees.map(r => [String(r[headerMap.get('Employee ID')]).trim(), r[headerMap.get('Employee Name')]]));
+    const successionPlan = getSuccessionPlanData(talentSs, employeeNameMap);
+
+    return {
+      promotionReady: promotionReady.sort((a,b) => b.performance - a.performance),
+      highPotentials: highPotentials,
+      successionPlan: successionPlan
+    };
+
+  } catch (e) {
+    Logger.log('Error in getTalentAnalyticsData: ' + e.message);
+    if (e.message.includes("You do not have permission")) {
+      return { error: "Permission denied. Please ensure the hub has access to the Talent Data Google Sheet." };
+    }
+    return { error: e.message };
+  }
+}
+
+/**
+ * Helper function to read 'Succession Planning' sheet from the talent spreadsheet.
+ */
+function getSuccessionPlanData(talentSpreadsheet, employeeNameMap) {
+    const sheet = talentSpreadsheet.getSheetByName('Succession Planning');
+    if (!sheet || sheet.getLastRow() < 2) {
+        return [];
+    }
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+    return data.map(row => ({
+        keyPosition: row[1],
+        successorId: String(row[2]).trim(),
+        successorName: employeeNameMap.get(String(row[2]).trim()) || 'Unknown Employee',
+        readiness: row[3],
+        notes: row[4]
+    }));
+}
+
+/**
+ * Fetches a list of all employees who have competency data.
+ * @returns {Array<Object>} An array of objects with employee code and name.
+ */
+function getCompetencyEmployeeList() {
+  try {
+    const ss = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Competency Matrix');
+    if (!sheet || sheet.getLastRow() < 2) {
+      return [];
+    }
+    const data = sheet.getRange(2, 2, sheet.getLastRow() - 1, 2).getValues(); // Get Employee Code and Name
+    const employees = data
+      .filter(row => row[0]) // Filter out empty rows
+      .map(row => ({ code: row[0], name: row[1] }));
+    return employees.sort((a, b) => a.name.localeCompare(b.name));
+  } catch (e) {
+    Logger.log('Error in getCompetencyEmployeeList: ' + e.message);
+    return [];
+  }
+}
+
+/**
+ * Fetches the detailed competency profile for a single employee from the "wide" format sheet.
+ * @param {string} employeeId The Employee Code to look up.
+ * @returns {Object} An object containing the structured competency data for the charts.
+ */
+function getEmployeeCompetencyProfile(employeeId) {
+  if (!employeeId) return null;
+
+  try {
+    const ss = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('Competency Matrix');
+    const data = sheet.getDataRange().getValues();
+    const headers = data.shift();
+    const empCodeIndex = headers.indexOf('EMPLOYEE CODE');
+
+    const employeeRow = data.find(row => String(row[empCodeIndex]).trim() === String(employeeId).trim());
+
+    if (!employeeRow) {
+      return { error: 'Employee not found in Competency Matrix.' };
+    }
+
+    const profile = {
+      core: { labels: [], actual: [], required: [] },
+      leadership: { labels: [], actual: [], required: [] },
+      technical: { labels: [], actual: [], required: [] }
+    };
+
+    const coreCompetencies = ["TRUSTWORTHINESS", "ENTREPRENEURIAL SPIRIT", "INNOVATION", "RESPECT FOR THE INDIVIDUAL", "COMMUNICATION"];
+    const leadershipCompetencies = ["LEADERSHIP BY EXAMPLE", "DRIVE FOR RESULTS", "COACHING FOR SUCCESS", "INSPIRING LOYAL AND TRUST", "WORKING ACROSS TEAMS", "TALENT MANAGEMENT AND DEVELOPMENT", "EMPOWERMENT"];
+    // Add more technical competencies here if needed
+    const technicalCompetencies = ["PROJECT MANAGEMENT", "LEAN THINKING PRINCIPLES", "PROCESS STANDARDIZATION", "OPERATIONAL EXPERTISE", "COST MANAGEMENT", "DATA-DRIVEN DECISION MAKING"];
+
+    headers.forEach((header, index) => {
+      const actualMatch = header.match(/(.+) \[Actual\]/);
+      if (actualMatch) {
+        const competencyName = actualMatch[1].trim();
+        const requiredIndex = headers.indexOf(`${competencyName} [Required]`);
+
+        const actualValue = employeeRow[index] || 0;
+        const requiredValue = (requiredIndex !== -1) ? (employeeRow[requiredIndex] || 0) : 0;
+
+        if (coreCompetencies.includes(competencyName)) {
+          profile.core.labels.push(competencyName);
+          profile.core.actual.push(actualValue);
+          profile.core.required.push(requiredValue);
+        } else if (leadershipCompetencies.includes(competencyName)) {
+          profile.leadership.labels.push(competencyName);
+          profile.leadership.actual.push(actualValue);
+          profile.leadership.required.push(requiredValue);
+        } else if (technicalCompetencies.includes(competencyName)) {
+          profile.technical.labels.push(competencyName);
+          profile.technical.actual.push(actualValue);
+          profile.technical.required.push(requiredValue);
+        }
+      }
+    });
+
+    return profile;
+
+  } catch (e) {
+    Logger.log('Error in getEmployeeCompetencyProfile: ' + e.message);
+    return { error: e.message };
+  }
+}
