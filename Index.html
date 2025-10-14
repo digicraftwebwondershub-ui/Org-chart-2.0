@@ -4177,9 +4177,13 @@ function initializeCompetencyView() {
     const select = document.getElementById('competency-employee-select');
     select.innerHTML = '<option>Loading employees...</option>';
 
-    google.script.run.withSuccessHandler(employees => {
+    google.script.run.withSuccessHandler(response => {
+        if (response.error) {
+            select.innerHTML = `<option disabled selected>Error: ${response.error}</option>`;
+            return;
+        }
         select.innerHTML = '<option value="">-- Select an Employee --</option>';
-        employees.forEach(emp => {
+        response.forEach(emp => {
             const option = document.createElement('option');
             option.value = emp.code;
             option.textContent = emp.name;
@@ -4207,7 +4211,7 @@ function drawCompetencyCharts(employeeId) {
 
     google.script.run.withSuccessHandler(profile => {
         if (profile.error) {
-            alert('Error: ' + profile.error);
+            alert('Error fetching competency profile: ' + profile.error);
             document.getElementById('competency-charts-loader').style.display = 'none';
             return;
         }
