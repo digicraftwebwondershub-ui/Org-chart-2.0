@@ -1187,6 +1187,7 @@
             <canvas id="technical-competency-chart"></canvas>
         </div>
     </div>
+</main> <!-- Close main content area -->
 </div> <!-- Close app -->
 
 <!-- Predictive View -->
@@ -1439,7 +1440,7 @@ function navigateToView(viewType, defaultTabId) {
     'org': 'org-view-tab',
     'analytics': 'analytics-view-tab',
     'predictive': 'predictive-view-tab',
-    'reports': 'reports-view-tab'
+    'reports': 'reports-view-tab',
     'competency': 'competency-view-tab' // Add this line
   };
 
@@ -1485,11 +1486,10 @@ function switchTab(tabId) {
       drawTalentInsights(); // <-- ADD THIS LINE
   } else if (tabId === 'adoption' && !adoptionDataLoaded) {
       drawAdoptionDashboard();
+  } else if (tabId === 'competency' && !competencyViewInitialized) {
+    initializeCompetencyView();
   }
 }
-      if (tabId === 'competency' && !competencyViewInitialized) {
-        initializeCompetencyView();
-    }
 
 
   function populateAnalyticsFilters() {
