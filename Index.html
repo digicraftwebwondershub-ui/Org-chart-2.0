@@ -1371,6 +1371,10 @@ function handleLogin(response) {
 function showHomepage() {
   document.getElementById('tab-area').style.display = 'none';
   document.getElementById('homepage-view').style.display = 'block';
+  
+  // Deactivate any active tab content/views to prevent them from persisting on the homepage
+  document.querySelectorAll('.tab-content.active').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab.active').forEach(el => el.classList.remove('active'));
 }
 
 // ADD THIS NEW FUNCTION
