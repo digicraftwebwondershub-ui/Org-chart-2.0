@@ -2711,6 +2711,11 @@ function getAttritionRiskData() {
     return { error: e.message };
   }
 }
+
+function testBackendConnection() {
+  Logger.log('SUCCESS: The backend connection test function was called successfully.');
+  return "Connection successful!";
+}
 // --- END: REVISED PREDICTIVE INSIGHTS FUNCTION ---
 
 // --- START: NEW HIRING PREDICTIONS FUNCTION ---
@@ -2946,21 +2951,37 @@ function getSuccessionPlanData(talentSpreadsheet, employeeNameMap) {
  * @returns {Array<Object>} An array of objects with employee code and name.
  */
 function getCompetencyEmployeeList() {
+  Logger.log('Attempting to get competency employee list...');
   try {
+    Logger.log(`Using Spreadsheet ID: ${COMPETENCY_SPREADSHEET_ID}`);
     const ss = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
+    Logger.log('Successfully opened spreadsheet by ID.');
+    
     const sheet = ss.getSheetByName('Competency Matrix');
-    if (!sheet || sheet.getLastRow() < 2) {
+    if (!sheet) {
+      Logger.log('Error: Sheet "Competency Matrix" not found.');
+      return { error: 'The sheet named "Competency Matrix" was not found in the spreadsheet.' };
+    }
+    Logger.log('Successfully found "Competency Matrix" sheet.');
+
+    if (sheet.getLastRow() < 2) {
+      Logger.log('Sheet is empty, returning empty array.');
       return [];
     }
-    const data = sheet.getRange(2, 2, sheet.getLastRow() - 1, 2).getValues(); // Get Employee Code and Name
+    
+    const data = sheet.getRange(2, 2, sheet.getLastRow() - 1, 2).getValues();
+    Logger.log(`Retrieved ${data.length} rows of data.`);
+
     const employees = data
-      .filter(row => row[0]) // Filter out empty rows
+      .filter(row => row[0])
       .map(row => ({ code: row[0], name: row[1] }));
+    
+    Logger.log(`Mapped to ${employees.length} valid employee records. Sorting and returning.`);
     return employees.sort((a, b) => a.name.localeCompare(b.name));
+
   } catch (e) {
-    Logger.log('Error in getCompetencyEmployeeList: ' + e.message);
-    // Return a specific error object to the frontend
-    return { error: `Could not access the Competency Spreadsheet. Please ensure the ID is correct and that the deploying user has viewer permissions. Details: ${e.message}` };
+    Logger.log(`CRITICAL ERROR in getCompetencyEmployeeList: ${e.stack}`);
+    return { error: `A server error occurred: ${e.message}. Please check the logs for details.` };
   }
 }
 
@@ -2975,9 +2996,6 @@ function getEmployeeCompetencyProfile(employeeId) {
   try {
     const ss = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
     const sheet = ss.getSheetByName('Competency Matrix');
-    if (!sheet) {
-      return { error: "The 'Competency Matrix' sheet was not found in the spreadsheet." };
-    }
     const data = sheet.getDataRange().getValues();
     const headers = data.shift();
     const empCodeIndex = headers.indexOf('EMPLOYEE CODE');
