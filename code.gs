@@ -2959,7 +2959,8 @@ function getCompetencyEmployeeList() {
     return employees.sort((a, b) => a.name.localeCompare(b.name));
   } catch (e) {
     Logger.log('Error in getCompetencyEmployeeList: ' + e.message);
-    return [];
+    // Return a specific error object to the frontend
+    return { error: `Could not access the Competency Spreadsheet. Please ensure the ID is correct and that the deploying user has viewer permissions. Details: ${e.message}` };
   }
 }
 
@@ -2974,6 +2975,9 @@ function getEmployeeCompetencyProfile(employeeId) {
   try {
     const ss = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
     const sheet = ss.getSheetByName('Competency Matrix');
+    if (!sheet) {
+      return { error: "The 'Competency Matrix' sheet was not found in the spreadsheet." };
+    }
     const data = sheet.getDataRange().getValues();
     const headers = data.shift();
     const empCodeIndex = headers.indexOf('EMPLOYEE CODE');
