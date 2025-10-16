@@ -4208,6 +4208,7 @@ function initializeCompetencyView() {
     });
 }
 
+// REVISED drawCompetencyCharts FUNCTION
 function drawCompetencyCharts(employeeId) {
     document.getElementById('competency-charts-loader').style.display = 'flex';
     document.getElementById('competency-charts-container').style.display = 'none';
@@ -4223,33 +4224,45 @@ function drawCompetencyCharts(employeeId) {
             return;
         }
 
-        const createChart = (canvasId, title, data) => {
-            if (data.labels.length === 0) return; // Don't draw empty charts
-            const ctx = document.getElementById(canvasId).getContext('2d');
+        // Helper function to create a single radar chart
+        const createChart = (canvasId, data) => {
+            // Do not draw a chart if there are no competencies in this category
+            if (!data || data.labels.length === 0) {
+              // Find the canvas's parent card and hide it
+              const canvas = document.getElementById(canvasId);
+              if (canvas && canvas.parentElement) {
+                canvas.parentElement.style.display = 'none';
+              }
+              return;
+            }
+
+            // If we have data, make sure the card is visible
+            const canvas = document.getElementById(canvasId);
+            if (canvas && canvas.parentElement) {
+                canvas.parentElement.style.display = 'block';
+            }
+
+            const ctx = canvas.getContext('2d');
             chartInstances[canvasId] = new Chart(ctx, {
                 type: 'radar',
                 data: {
                     labels: data.labels,
                     datasets: [{
-                        label: 'Individual Point',
+                        label: 'Actual Score',
                         data: data.actual,
                         fill: true,
                         backgroundColor: 'rgba(239, 68, 68, 0.2)',
                         borderColor: 'rgb(239, 68, 68)',
                         pointBackgroundColor: 'rgb(239, 68, 68)',
                         pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(239, 68, 68)'
                     }, {
-                        label: 'Required Competency',
+                        label: 'Required Score',
                         data: data.required,
                         fill: true,
                         backgroundColor: 'rgba(59, 130, 246, 0.2)',
                         borderColor: 'rgb(59, 130, 246)',
                         pointBackgroundColor: 'rgb(59, 130, 246)',
                         pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(59, 130, 246)'
                     }]
                 },
                 options: {
@@ -4258,7 +4271,7 @@ function drawCompetencyCharts(employeeId) {
                         r: {
                             angleLines: { display: false },
                             suggestedMin: 0,
-                            suggestedMax: 4,
+                            suggestedMax: 5,
                             ticks: { stepSize: 1 }
                         }
                     }
@@ -4266,16 +4279,16 @@ function drawCompetencyCharts(employeeId) {
             });
         };
 
-        createChart('core-competency-chart', 'Core Competencies', profile.core);
-        createChart('leadership-competency-chart', 'Leadership Competencies', profile.leadership);
-        createChart('technical-competency-chart', 'Technical Competencies', profile.technical);
+        // Create a chart for each competency group
+        createChart('core-competency-chart', profile.core);
+        createChart('leadership-competency-chart', profile.leadership);
+        createChart('technical-competency-chart', profile.technical);
 
         document.getElementById('competency-charts-loader').style.display = 'none';
         document.getElementById('competency-charts-container').style.display = 'grid';
 
     }).getEmployeeCompetencyProfile(employeeId);
 }
-
 </script>
 </div>
 </body>
