@@ -4290,11 +4290,13 @@ function initializeCompetencyView() {
 
     const individualProfileButton = document.getElementById('show-individual-profile');
     const teamHeatmapButton = document.getElementById('show-team-heatmap');
-    const individualProfileView = document.getElementById('individual-profile-content');
+    const individualProfileDropdownView = document.getElementById('individual-profile-view');
+    const individualProfileContentView = document.getElementById('individual-profile-content');
     const teamHeatmapView = document.getElementById('team-competency-section');
 
     individualProfileButton.addEventListener('click', () => {
-        individualProfileView.style.display = 'block';
+        individualProfileDropdownView.style.display = 'block';
+        individualProfileContentView.style.display = 'block';
         teamHeatmapView.style.display = 'none';
         individualProfileButton.classList.add('bg-white', 'shadow', 'text-blue-700');
         individualProfileButton.classList.remove('text-gray-600', 'hover:bg-gray-300');
@@ -4303,7 +4305,8 @@ function initializeCompetencyView() {
     });
 
     teamHeatmapButton.addEventListener('click', () => {
-        individualProfileView.style.display = 'none';
+        individualProfileDropdownView.style.display = 'none';
+        individualProfileContentView.style.display = 'none';
         teamHeatmapView.style.display = 'block';
         teamHeatmapButton.classList.add('bg-white', 'shadow', 'text-blue-700');
         teamHeatmapButton.classList.remove('text-gray-600', 'hover:bg-gray-300');
