@@ -3070,3 +3070,168 @@ function getEmployeeCompetencyProfile(employeeId) {
     return { error: e.message };
   }
 }
+
+/**
+ * REVISED - Fetches and calculates competency analytics.
+ * This version is made more robust to handle hidden characters and case sensitivity in headers.
+ * It also includes logging for easier debugging.
+ * @param {string} employeeId The Employee ID to look up.
+ * @returns {Object} An object containing all competency analytics.
+ */
+function getCompetencyAnalytics(employeeId) {
+  if (!employeeId) return { error: 'No employee ID provided.' };
+
+  try {
+    const hubSs = SpreadsheetApp.getActiveSpreadsheet();
+    const compSs = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
+    const mainSheet = hubSs.getSheets()[0];
+    const compSheet = compSs.getSheetByName('Competency Matrix');
+    const historySheet = compSs.getSheetByName('Competency History');
+
+    // (This part for current data remains the same)
+    if (!compSheet) return { error: "The 'Competency Matrix' sheet was not found." };
+    const compData = compSheet.getDataRange().getValues();
+    const rawHeaders = compData.shift();
+    const headers = rawHeaders.map(header => header.replace(/\n|\r/g, ' ').trim());
+    const compEmpIdIndex = headers.indexOf('EMPLOYEE ID');
+    if (compEmpIdIndex === -1) return { error: "Header 'EMPLOYEE ID' not found in Competency Matrix." };
+    const employeeRow = compData.find(row => String(row[compEmpIdIndex]).trim() === String(employeeId).trim());
+    if (!employeeRow) return { error: 'Employee not found in Competency Matrix.' };
+
+    const employeeDepartmentMap = new Map();
+    let selectedEmployeeDept = null;
+    if (mainSheet) {
+      const mainData = mainSheet.getDataRange().getValues();
+      const mainHeaders = mainData.shift();
+      const mainEmpIdIndex = mainHeaders.indexOf('Employee ID');
+      const mainDeptIndex = mainHeaders.indexOf('Department');
+      if (mainEmpIdIndex !== -1 && mainDeptIndex !== -1) {
+        mainData.forEach(row => {
+          const empId = String(row[mainEmpIdIndex]).trim();
+          const dept = row[mainDeptIndex];
+          if (empId && dept) employeeDepartmentMap.set(empId, dept);
+        });
+      }
+      selectedEmployeeDept = employeeDepartmentMap.get(String(employeeId).trim());
+    }
+
+    const profile = {
+      core: { labels: [], actual: [], required: [], team: [] },
+      leadership: { labels: [], actual: [], required: [], team: [] },
+      technical: { labels: [], actual: [], required: [], team: [] }
+    };
+    const allGaps = [];
+    const coreCompetencies = ["TRUSTWORTHINESS", "ENTREPRENEURIAL SPIRIT", "INNOVATION", "LEADERSHIP", "RESPECT FOR THE INDIVIDUAL"];
+    const leadershipCompetencies = ["LEADERSHIP BY EXAMPLE", "DRIVE FOR RESULTS", "COACHING FOR SUCCESS", "INSPIRING LOYAL AND TRUST", "WORKING ACROSS TEAMS", "TALENT MANAGEMENT AND DEVELOPMENT", "EMPOWERMENT", "COMMUNICATION", "EXECUTIVE DISPOSITION"];
+    const technicalCompetencies = ["PROJECT MANAGEMENT", "LEAN THINKING PRINCIPLES", "PROCESS STANDARDIZATION", "OPERATIONAL EXPERTISE", "COST MANAGEMENT", "DATA-DRIVEN DECISION MAKING", "MANAGEMENT OF WORK SYSTEMS/BUSINESS PROCESS ORIENTATION"];
+    const allCompetencyNames = [...coreCompetencies, ...leadershipCompetencies, ...technicalCompetencies];
+    allCompetencyNames.forEach(competencyName => {
+      let requiredIndex = -1, actualIndex = -1;
+      const indices = headers.map((h, i) => (h.trim() === competencyName ? i : -1)).filter(i => i !== -1);
+      if (indices.length >= 2) {
+        requiredIndex = indices[0];
+        actualIndex = indices[1];
+      }
+      if (requiredIndex !== -1 && actualIndex !== -1) {
+        const requiredValue = parseFloat(employeeRow[requiredIndex]) || 0;
+        const actualValue = parseFloat(employeeRow[actualIndex]) || 0;
+        if (requiredValue > 0 || actualValue > 0) {
+          allGaps.push({ name: competencyName, gap: actualValue - requiredValue });
+          let teamTotal = 0, teamMemberCount = 0;
+          if (selectedEmployeeDept) {
+            compData.forEach(row => {
+              const currentEmpId = String(row[compEmpIdIndex]).trim();
+              if (employeeDepartmentMap.get(currentEmpId) === selectedEmployeeDept) {
+                teamTotal += parseFloat(row[actualIndex]) || 0;
+                teamMemberCount++;
+              }
+            });
+          }
+          const teamAverage = (teamMemberCount > 0) ? (teamTotal / teamMemberCount) : 0;
+          let category;
+          if (coreCompetencies.includes(competencyName)) category = profile.core;
+          else if (leadershipCompetencies.includes(competencyName)) category = profile.leadership;
+          else if (technicalCompetencies.includes(competencyName)) category = profile.technical;
+          if (category && !category.labels.includes(competencyName)) {
+            category.labels.push(competencyName);
+            category.required.push(requiredValue);
+            category.actual.push(actualValue);
+            category.team.push(parseFloat(teamAverage.toFixed(2)));
+          }
+        }
+      }
+    });
+    allGaps.sort((a, b) => b.gap - a.gap);
+    const strengths = allGaps.filter(item => item.gap > 0).slice(0, 3);
+    const gaps = allGaps.filter(item => item.gap < 0).reverse().slice(0, 3);
+    const allActuals = [...profile.core.actual, ...profile.leadership.actual, ...profile.technical.actual];
+    const allRequired = [...profile.core.required, ...profile.leadership.required, ...profile.technical.required];
+    const overallActual = allActuals.length > 0 ? (allActuals.reduce((a, b) => a + b, 0) / allActuals.length) : 0;
+    const overallRequired = allRequired.length > 0 ? (allRequired.reduce((a, b) => a + b, 0) / allRequired.length) : 0;
+
+    // --- REVISED: Process Historical Data with robust header matching and logging ---
+    const historicalData = { labels: [], datasets: [] };
+    if (historySheet) {
+      Logger.log("Processing 'Competency History' sheet.");
+      const histData = historySheet.getDataRange().getValues();
+      const rawHistHeaders = histData.shift();
+      // Clean headers: remove newlines, trim, and convert to uppercase for robust matching.
+      const histHeaders = rawHistHeaders.map(h => (h || '').toString().replace(/\n|\r/g, ' ').trim().toUpperCase());
+      
+      Logger.log("Cleaned History Headers: " + JSON.stringify(histHeaders));
+
+      // Find the correct column indices using the cleaned, uppercase headers.
+      const histEmpIdIndex = histHeaders.indexOf('EMPLOYEE ID');
+      const histYearIndex = histHeaders.indexOf('ASSESSMENT YEAR');
+      const histActualAvgIndex = histHeaders.indexOf('ACTUAL AVERAGE');
+      const histGapAvgIndex = histHeaders.indexOf('GAP AVERAGE');
+
+      Logger.log(`Header Indices Found: empId=${histEmpIdIndex}, year=${histYearIndex}, actualAvg=${histActualAvgIndex}, gapAvg=${histGapAvgIndex}`);
+
+      if (histEmpIdIndex !== -1 && histYearIndex !== -1 && histActualAvgIndex !== -1 && histGapAvgIndex !== -1) {
+        Logger.log("All required history headers found. Filtering for employee: " + employeeId);
+
+        const employeeHistoryRows = histData
+          .filter(row => String(row[histEmpIdIndex]).trim() === String(employeeId).trim())
+          .sort((a, b) => a[histYearIndex] - b[histYearIndex]);
+
+        Logger.log("Found " + employeeHistoryRows.length + " historical rows for this employee.");
+
+        if (employeeHistoryRows.length > 0) {
+            historicalData.labels = employeeHistoryRows.map(row => row[histYearIndex].toString());
+            
+            historicalData.datasets.push({
+                label: "Overall Actual Average",
+                data: employeeHistoryRows.map(row => parseFloat(row[histActualAvgIndex]) || null)
+            });
+
+            historicalData.datasets.push({
+                label: "Overall Gap Average",
+                data: employeeHistoryRows.map(row => parseFloat(row[histGapAvgIndex]) || null)
+            });
+
+            Logger.log("Successfully prepared historical data for chart: " + JSON.stringify(historicalData));
+        }
+      } else {
+        Logger.log("One or more required headers were NOT found in 'Competency History' sheet.");
+      }
+    } else {
+        Logger.log("'Competency History' sheet not found.");
+    }
+
+    return {
+      radarData: profile,
+      strengths: strengths,
+      gaps: gaps,
+      overall: {
+        actual: parseFloat(overallActual.toFixed(2)),
+        required: parseFloat(overallRequired.toFixed(2))
+      },
+      history: historicalData
+    };
+
+  } catch (e) {
+    Logger.log('Error in getCompetencyAnalytics: ' + e.message + ' Stack: ' + e.stack);
+    return { error: e.message };
+  }
+}
