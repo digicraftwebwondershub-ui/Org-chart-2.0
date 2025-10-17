@@ -4362,7 +4362,7 @@ function drawTeamCompetencyHeatmap(department) {
             thead.className = 'bg-gray-50';
             let headerHtml = '<tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r align-bottom">Employee Name</th>';
             data.headers.forEach(header => {
-                headerHtml += `<th class="p-2 border-l text-xs font-medium text-gray-500 uppercase" style="writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap; height: 150px;">${header}</th>`;
+                headerHtml += '<th class="p-2 border-l text-xs font-medium text-gray-500 uppercase" style="white-space: normal; max-width: 200px; vertical-align: bottom; table-layout: auto; width: auto;">' + header + '</th>';
             });
             headerHtml += '</tr>';
             thead.innerHTML = headerHtml;
