@@ -606,11 +606,11 @@
 
         <!-- Employee Competency Card -->
         <div onclick="navigateToView('competency', 'competency')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
-          <svg class="h-24 w-24 mb-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <svg class="h-24 w-24 mb-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
           </svg>
-          <h3 class="font-bold text-lg text-slate-600">Employee Competency</h3>
-          <p class="text-sm text-slate-400 mt-1">Assess and manage employee skills and qualifications. (Coming Soon)</p>
+          <h3 class="font-bold text-lg text-slate-800">Employee Competency</h3>
+          <p class="text-sm text-slate-500 mt-1">Visualize and analyze employee skill sets and competency gaps.</p>
         </div>
 
         <!-- Employee Engagement Card (Disabled) -->
@@ -1171,6 +1171,28 @@
             </select>
         </div>
     </div>
+
+    <div id="competency-summary-container" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8" style="display: none;">
+    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md flex flex-col items-center">
+        <h3 class="text-xl font-bold text-slate-800 mb-2 text-center">Overall Score</h3>
+        <div id="gauge-chart-div" style="width: 250px; height: 250px;"></div>
+    </div>
+    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+        <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Top Strengths</h3>
+        <ul id="strengths-list" class="space-y-3">
+            </ul>
+    </div>
+    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+        <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Development Areas</h3>
+        <ul id="gaps-list" class="space-y-3">
+            </ul>
+    </div>
+</div>
+
+<div id="competency-history-container" class="mt-8 p-4 sm:p-6 bg-white rounded-lg shadow-md" style="display: none;">
+    <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Competency Development Over Time</h3>
+    <canvas id="historical-competency-chart"></canvas>
+</div>
 
     <div id="competency-charts-loader" class="flex justify-center items-center h-64 mt-8" style="display: none;"><div id="loader"></div></div>
 
@@ -4179,10 +4201,14 @@ function drawTalentInsights() {
 
 var chartInstances = {}; // To keep track of charts and destroy them before redrawing
 
+// REVISED - This function now loads all analytics at once.
 function initializeCompetencyView() {
     competencyViewInitialized = true;
     const select = document.getElementById('competency-employee-select');
     select.innerHTML = '<option>Loading employees...</option>';
+
+    // Load the Google Gauge chart package
+    google.charts.load('current', {packages:['gauge']});
 
     google.script.run.withSuccessHandler(response => {
         if (response.error) {
@@ -4201,46 +4227,123 @@ function initializeCompetencyView() {
     select.addEventListener('change', (event) => {
         const employeeId = event.target.value;
         if (employeeId) {
-            drawCompetencyCharts(employeeId);
+            drawCompetencyDashboard(employeeId); // Call the new main function
         } else {
+            // Hide all sections if no employee is selected
+            document.getElementById('competency-summary-container').style.display = 'none';
+            document.getElementById('competency-history-container').style.display = 'none';
             document.getElementById('competency-charts-container').style.display = 'none';
         }
     });
 }
 
-// REVISED drawCompetencyCharts FUNCTION
-function drawCompetencyCharts(employeeId) {
+// REPLACED - This is now the main function for the entire tab.
+function drawCompetencyDashboard(employeeId) {
     document.getElementById('competency-charts-loader').style.display = 'flex';
+    document.getElementById('competency-summary-container').style.display = 'none';
+    document.getElementById('competency-history-container').style.display = 'none';
     document.getElementById('competency-charts-container').style.display = 'none';
 
-    // Destroy previous charts if they exist to prevent flickering
+    // Destroy previous charts to prevent memory leaks
     Object.values(chartInstances).forEach(chart => chart.destroy());
     chartInstances = {};
 
-    google.script.run.withSuccessHandler(profile => {
-        if (profile.error) {
-            alert('Error fetching competency profile: ' + profile.error);
+    // Call the new, all-in-one backend function
+    google.script.run.withSuccessHandler(analytics => {
+        if (analytics.error) {
+            alert('Error fetching competency analytics: ' + analytics.error);
             document.getElementById('competency-charts-loader').style.display = 'none';
             return;
         }
 
-        // Helper function to create a single radar chart
-        const createChart = (canvasId, data) => {
-            // Do not draw a chart if there are no competencies in this category
-            if (!data || data.labels.length === 0) {
-              // Find the canvas's parent card and hide it
-              const canvas = document.getElementById(canvasId);
-              if (canvas && canvas.parentElement) {
-                canvas.parentElement.style.display = 'none';
-              }
-              return;
-            }
+        // --- Render all new components ---
+        renderOverallScoreGauge(analytics.overall);
+        renderStrengthsAndGaps(analytics.strengths, analytics.gaps);
+        renderRadarCharts(analytics.radarData);
+        renderHistoricalChart(analytics.history);
 
-            // If we have data, make sure the card is visible
+        // --- Show all containers ---
+        document.getElementById('competency-charts-loader').style.display = 'none';
+        document.getElementById('competency-summary-container').style.display = 'grid';
+        document.getElementById('competency-history-container').style.display = 'block';
+        document.getElementById('competency-charts-container').style.display = 'grid';
+
+    }).getCompetencyAnalytics(employeeId);
+}
+
+// --- NEW HELPER FUNCTIONS ---
+
+// REVISED - This function now sets the gauge's maximum value to 4.
+    function renderOverallScoreGauge(overall) {
+        const data = google.visualization.arrayToDataTable([
+          ['Label', 'Value'],
+          ['Score', overall.actual]
+        ]);
+        
+        const requiredScore = overall.required;
+        // Adjusted color ranges for a 0-4 scale
+        const redFrom = 0;
+        const redTo = requiredScore - 1;
+        const yellowFrom = requiredScore - 1;
+        const yellowTo = requiredScore + 0.5;
+        const greenFrom = requiredScore + 0.5;
+        const greenTo = 4;
+
+        const options = {
+          width: 250, height: 250,
+          redFrom: redFrom, redTo: redTo,
+          yellowFrom: yellowFrom, yellowTo: yellowTo,
+          greenFrom: greenFrom, greenTo: greenTo,
+          minorTicks: 4,
+          // --- FIX: Set the maximum value and ticks to 4 ---
+          max: 4,
+          majorTicks: ['0', '1', '2', '3', '4']
+        };
+
+        const chart = new google.visualization.Gauge(document.getElementById('gauge-chart-div'));
+        chart.draw(data, options);
+    }
+
+function renderStrengthsAndGaps(strengths, gaps) {
+    const strengthsList = document.getElementById('strengths-list');
+    const gapsList = document.getElementById('gaps-list');
+    strengthsList.innerHTML = '';
+    gapsList.innerHTML = '';
+
+    if (strengths.length > 0) {
+        strengths.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center text-sm';
+            li.innerHTML = `<svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> 
+                            <span class="font-semibold">${item.name}</span> <span class="ml-auto text-green-600 font-bold">+${item.gap.toFixed(2)}</span>`;
+            strengthsList.appendChild(li);
+        });
+    } else {
+        strengthsList.innerHTML = '<p class="text-gray-500 text-center">No significant strengths identified.</p>';
+    }
+
+    if (gaps.length > 0) {
+        gaps.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center text-sm';
+            li.innerHTML = `<svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17l5-5m0 0l-5-5m5 5H6"></path></svg> 
+                            <span class="font-semibold">${item.name}</span> <span class="ml-auto text-red-600 font-bold">${item.gap.toFixed(2)}</span>`;
+            gapsList.appendChild(li);
+        });
+    } else {
+        gapsList.innerHTML = '<p class="text-gray-500 text-center">No significant development areas identified.</p>';
+    }
+}
+
+// REVISED - This version specifically adds borderWidth to the Team Average dataset.
+    function renderRadarCharts(radarData) {
+        const createChart = (canvasId, data) => {
             const canvas = document.getElementById(canvasId);
-            if (canvas && canvas.parentElement) {
-                canvas.parentElement.style.display = 'block';
+            if (!data || data.labels.length === 0) {
+                if (canvas && canvas.parentElement) canvas.parentElement.style.display = 'none';
+                return;
             }
+            if (canvas && canvas.parentElement) canvas.parentElement.style.display = 'block';
 
             const ctx = canvas.getContext('2d');
             chartInstances[canvasId] = new Chart(ctx, {
@@ -4254,7 +4357,7 @@ function drawCompetencyCharts(employeeId) {
                         backgroundColor: 'rgba(239, 68, 68, 0.2)',
                         borderColor: 'rgb(239, 68, 68)',
                         pointBackgroundColor: 'rgb(239, 68, 68)',
-                        pointBorderColor: '#fff',
+                        borderWidth: 3
                     }, {
                         label: 'Required Score',
                         data: data.required,
@@ -4262,16 +4365,26 @@ function drawCompetencyCharts(employeeId) {
                         backgroundColor: 'rgba(59, 130, 246, 0.2)',
                         borderColor: 'rgb(59, 130, 246)',
                         pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
+                        borderWidth: 3
+                    }, {
+                        label: 'Team Average',
+                        data: data.team,
+                        fill: false,
+                        borderColor: 'rgba(22, 163, 74, 0.9)',
+                        pointBackgroundColor: 'rgb(22, 163, 74)',
+                        // --- THIS IS THE FINAL FIX ---
+                        // This explicitly tells the chart to draw the line for this specific dataset.
+                        borderWidth: 2.5
                     }]
                 },
                 options: {
-                    elements: { line: { borderWidth: 3 } },
+                    // This general setting is removed as we now define borderWidth per dataset
+                    // elements: { line: { borderWidth: 3 } }, 
                     scales: {
                         r: {
                             angleLines: { display: false },
                             suggestedMin: 0,
-                            suggestedMax: 5,
+                            suggestedMax: 4,
                             ticks: { stepSize: 1 }
                         }
                     }
@@ -4279,16 +4392,60 @@ function drawCompetencyCharts(employeeId) {
             });
         };
 
-        // Create a chart for each competency group
-        createChart('core-competency-chart', profile.core);
-        createChart('leadership-competency-chart', profile.leadership);
-        createChart('technical-competency-chart', profile.technical);
+        createChart('core-competency-chart', radarData.core);
+        createChart('leadership-competency-chart', radarData.leadership);
+        createChart('technical-competency-chart', radarData.technical);
+    }
 
-        document.getElementById('competency-charts-loader').style.display = 'none';
-        document.getElementById('competency-charts-container').style.display = 'grid';
+// REVISED - This function now draws two lines: one for Actual Average and one for Gap Average.
+    function renderHistoricalChart(history) {
+        const container = document.getElementById('competency-history-container');
+        const canvasId = 'historical-competency-chart';
+        
+        // Check if there's at least one dataset with some data.
+        if (!history || history.datasets.length === 0 || history.datasets.every(d => d.data.length < 2)) {
+             container.style.display = 'none';
+             return;
+        }
+        container.style.display = 'block';
 
-    }).getEmployeeCompetencyProfile(employeeId);
-}
+        const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f97316']; // Blue, Red, Green, Orange
+        
+        const datasets = history.datasets.map((dataset, index) => ({
+            label: dataset.label,
+            data: dataset.data,
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length] + '33', // Add transparency for area fill
+            tension: 0.1,
+            fill: false,
+            spanGaps: true // Ensures line continues over null points if any
+        }));
+
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        chartInstances[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: history.labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                  title: {
+                    display: true,
+                    text: 'Yearly Competency Averages'
+                  }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false, // Allow negative values for gap
+                        suggestedMax: 4 // Match your 0-4 competency scale
+                    }
+                }
+            }
+        });
+    }
+
 </script>
 </div>
 </body>
