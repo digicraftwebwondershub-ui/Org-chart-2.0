@@ -1163,51 +1163,102 @@
 
   <div id="competency-view" class="tab-content">
     <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-        <h2 class="text-2xl font-bold text-slate-800 mb-4">Employee Competency Profile</h2>
-        <div class="max-w-md">
-            <label for="competency-employee-select" class="block text-sm font-medium text-gray-700">Choose a Person</label>
-            <select id="competency-employee-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                <option>Loading employees...</option>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-slate-800">Employee Competency</h2>
+            <div id="competency-view-toggle" class="flex space-x-1 bg-gray-200 p-1 rounded-lg">
+                <button id="show-individual-profile" class="px-3 py-1 text-sm font-medium rounded-md bg-white shadow text-blue-700">Individual Profile</button>
+                <button id="show-team-heatmap" class="px-3 py-1 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-300">Team Heatmap</button>
+            </div>
+        </div>
+        <div id="individual-profile-view">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Employee Competency Profile</h3>
+            <div class="max-w-md">
+                <label for="competency-employee-select" class="block text-sm font-medium text-gray-700">Choose a Person</label>
+                <select id="competency-employee-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option>Loading employees...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="individual-profile-content">
+      <div id="competency-summary-container" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8" style="display: none;">
+      <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md flex flex-col items-center">
+          <h3 class="text-xl font-bold text-slate-800 mb-2 text-center">Overall Score</h3>
+          <div id="gauge-chart-div" style="width: 250px; height: 250px;"></div>
+      </div>
+      <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+          <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Top Strengths</h3>
+          <ul id="strengths-list" class="space-y-3">
+              </ul>
+      </div>
+      <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+          <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Development Areas</h3>
+          <ul id="gaps-list" class="space-y-3">
+              </ul>
+      </div>
+  </div>
+  
+  <div id="competency-history-container" class="mt-8 p-4 sm:p-6 bg-white rounded-lg shadow-md" style="display: none;">
+      <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Competency Development Over Time</h3>
+      <canvas id="historical-competency-chart"></canvas>
+  </div>
+  
+      <div id="competency-charts-loader" class="flex justify-center items-center h-64 mt-8" style="display: none;"><div id="loader"></div></div>
+  
+      <div id="competency-charts-container" class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8" style="display: none;">
+          <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+              <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Core Competencies</h3>
+              <canvas id="core-competency-chart"></canvas>
+          </div>
+          <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+              <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Leadership Competencies</h3>
+              <canvas id="leadership-competency-chart"></canvas>
+          </div>
+          <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md lg:col-span-2">
+              <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Technical Competencies</h3>
+              <canvas id="technical-competency-chart"></canvas>
+          </div>
+      </div>
+    </div>
+
+    <!-- New Team Competency Heatmap Section -->
+    <div id="team-competency-section" class="mt-8 p-4 sm:p-6 bg-white rounded-lg shadow-md" style="display: none;">
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">Team Competency Heatmap</h2>
+        <div class="max-w-md mb-6">
+            <label for="heatmap-department-select" class="block text-sm font-medium text-gray-700">Choose a Department</label>
+            <select id="heatmap-department-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <option>Loading departments...</option>
             </select>
         </div>
-    </div>
-
-    <div id="competency-summary-container" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8" style="display: none;">
-    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md flex flex-col items-center">
-        <h3 class="text-xl font-bold text-slate-800 mb-2 text-center">Overall Score</h3>
-        <div id="gauge-chart-div" style="width: 250px; height: 250px;"></div>
-    </div>
-    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-        <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Top Strengths</h3>
-        <ul id="strengths-list" class="space-y-3">
-            </ul>
-    </div>
-    <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-        <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Development Areas</h3>
-        <ul id="gaps-list" class="space-y-3">
-            </ul>
-    </div>
-</div>
-
-<div id="competency-history-container" class="mt-8 p-4 sm:p-6 bg-white rounded-lg shadow-md" style="display: none;">
-    <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Competency Development Over Time</h3>
-    <canvas id="historical-competency-chart"></canvas>
-</div>
-
-    <div id="competency-charts-loader" class="flex justify-center items-center h-64 mt-8" style="display: none;"><div id="loader"></div></div>
-
-    <div id="competency-charts-container" class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8" style="display: none;">
-        <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Core Competencies</h3>
-            <canvas id="core-competency-chart"></canvas>
+        <div id="heatmap-loader" class="flex justify-center items-center h-48" style="display: none;"><div id="loader"></div></div>
+        <div id="heatmap-container" class="overflow-x-auto">
+            <!-- Heatmap table will be generated here by JavaScript -->
         </div>
-        <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-            <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Leadership Competencies</h3>
-            <canvas id="leadership-competency-chart"></canvas>
-        </div>
-        <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md lg:col-span-2">
-            <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Technical Competencies</h3>
-            <canvas id="technical-competency-chart"></canvas>
+    </div>
+
+    <!-- New Competency Deep Dive Modal -->
+    <div id="competency-deep-dive-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="deep-dive-modal-title" class="text-2xl font-bold text-slate-800">Competency Deep Dive</h2>
+                <button onclick="closeDeepDiveModal()" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="deep-dive-content" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-700 mb-4 text-center">Score Comparison</h3>
+                    <canvas id="deep-dive-bar-chart"></canvas>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-700 mb-4 text-center">Top Performers</h3>
+                    <ul id="top-performers-list" class="space-y-2">
+                        <!-- Top performers will be listed here -->
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeDeepDiveModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
+            </div>
         </div>
     </div>
 </main> <!-- Close main content area -->
@@ -1515,8 +1566,6 @@ function switchTab(tabId) {
       drawTalentInsights(); // <-- ADD THIS LINE
   } else if (tabId === 'adoption' && !adoptionDataLoaded) {
       drawAdoptionDashboard();
-  } else if (tabId === 'competency' && !competencyViewInitialized) {
-    initializeCompetencyView();
   }
 }
 
@@ -2240,7 +2289,6 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
   function fetchData() {
     showLoader();
     google.script.run.withSuccessHandler(onDataFetched).withFailureHandler(onFetchError).getEmployeeData();
-    google.script.run.withSuccessHandler(lists => dropdownListData = lists).getListsForDropdowns();
     google.script.run.withSuccessHandler(renderNotifications).getUpcomingDues();
   }
 
@@ -2259,6 +2307,7 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
     userCanEdit = data.canEdit;
     totalApprovedPlantilla = data.totalApprovedPlantilla;
     previousDateString = data.previousDateString;
+    dropdownListData = data.dropdownListData;
     employeeMap = new Map(fullEmployeeData.map(emp => [emp.nodeId, emp]));
 
     if(userCanEdit) {
@@ -2268,6 +2317,7 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
     populateLevelLegend();
     setupPageEventListeners();
     populateFilters();
+    initializeCompetencyView();
     updateUI();
   }
 
@@ -4233,8 +4283,120 @@ function initializeCompetencyView() {
             document.getElementById('competency-summary-container').style.display = 'none';
             document.getElementById('competency-history-container').style.display = 'none';
             document.getElementById('competency-charts-container').style.display = 'none';
+        document.getElementById('team-competency-section').style.display = 'none';
+        document.getElementById('individual-profile-content').style.display = 'none';
         }
     });
+
+    const individualProfileButton = document.getElementById('show-individual-profile');
+    const teamHeatmapButton = document.getElementById('show-team-heatmap');
+    const individualProfileView = document.getElementById('individual-profile-content');
+    const teamHeatmapView = document.getElementById('team-competency-section');
+
+    individualProfileButton.addEventListener('click', () => {
+        individualProfileView.style.display = 'block';
+        teamHeatmapView.style.display = 'none';
+        individualProfileButton.classList.add('bg-white', 'shadow', 'text-blue-700');
+        individualProfileButton.classList.remove('text-gray-600', 'hover:bg-gray-300');
+        teamHeatmapButton.classList.add('text-gray-600', 'hover:bg-gray-300');
+        teamHeatmapButton.classList.remove('bg-white', 'shadow', 'text-blue-700');
+    });
+
+    teamHeatmapButton.addEventListener('click', () => {
+        individualProfileView.style.display = 'none';
+        teamHeatmapView.style.display = 'block';
+        teamHeatmapButton.classList.add('bg-white', 'shadow', 'text-blue-700');
+        teamHeatmapButton.classList.remove('text-gray-600', 'hover:bg-gray-300');
+        individualProfileButton.classList.add('text-gray-600', 'hover:bg-gray-300');
+        individualProfileButton.classList.remove('bg-white', 'shadow', 'text-blue-700');
+    });
+
+    // Populate the department dropdown for the heatmap
+    const heatmapDeptSelect = document.getElementById('heatmap-department-select');
+    heatmapDeptSelect.innerHTML = '<option value="">-- Select a Department --</option>';
+    if (dropdownListData && dropdownListData.departments) {
+      dropdownListData.departments.forEach(dept => {
+          const option = document.createElement('option');
+          option.value = dept;
+          option.textContent = dept;
+          heatmapDeptSelect.appendChild(option);
+      });
+    }
+
+    heatmapDeptSelect.addEventListener('change', (event) => {
+        const department = event.target.value;
+        if (department) {
+            drawTeamCompetencyHeatmap(department);
+        } else {
+            document.getElementById('heatmap-container').innerHTML = '';
+        }
+    });
+    
+    // Show the individual profile by default
+    individualProfileView.style.display = 'block';
+}
+
+function drawTeamCompetencyHeatmap(department) {
+    const loader = document.getElementById('heatmap-loader');
+    const container = document.getElementById('heatmap-container');
+    loader.style.display = 'flex';
+    container.innerHTML = '';
+
+    google.script.run
+        .withSuccessHandler(data => {
+            loader.style.display = 'none';
+            if (data.error) {
+                container.innerHTML = `<p class="text-red-500">Error: ${data.error}</p>`;
+                return;
+            }
+            if (data.employeeScores.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No employees with competency data found in this department.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.className = 'min-w-full divide-y divide-gray-200 border';
+
+            // Create header row
+            const thead = document.createElement('thead');
+            thead.className = 'bg-gray-50';
+            let headerHtml = '<tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r align-bottom">Employee Name</th>';
+            data.headers.forEach(header => {
+                headerHtml += `<th class="p-2 border-l text-xs font-medium text-gray-500 uppercase" style="writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap; height: 150px;">${header}</th>`;
+            });
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+            table.appendChild(thead);
+
+            // Create body rows
+            const tbody = document.createElement('tbody');
+            tbody.className = 'bg-white divide-y divide-gray-200';
+            data.employeeScores.forEach(employee => {
+                let rowHtml = `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r">${employee.name}</td>`;
+                employee.scores.forEach(score => {
+                    const color = getHeatmapColor(score);
+                    rowHtml += `<td class="px-2 py-4 whitespace-nowrap text-sm text-center font-bold text-white" style="background-color: ${color};">${score}</td>`;
+                });
+                rowHtml += '</tr>';
+                tbody.innerHTML += rowHtml;
+            });
+            table.appendChild(tbody);
+
+            container.appendChild(table);
+        })
+        .withFailureHandler(err => {
+            loader.style.display = 'none';
+            container.innerHTML = `<p class="text-red-500">An error occurred: ${err.message}</p>`;
+        })
+        .getTeamCompetencyHeatmap(department);
+}
+
+function getHeatmapColor(score) {
+    if (score >= 4) return '#16a34a'; // Dark Green
+    if (score >= 3) return '#22c55e'; // Green
+    if (score >= 2) return '#facc15'; // Yellow
+    if (score >= 1) return '#f97316'; // Orange
+    return '#ef4444'; // Red
 }
 
 // REPLACED - This is now the main function for the entire tab.
@@ -4335,7 +4497,7 @@ function renderStrengthsAndGaps(strengths, gaps) {
     }
 }
 
-// REVISED - This version specifically adds borderWidth to the Team Average dataset.
+// REVISED - This version specifically adds borderWidth to the Team Average dataset and the onClick handler.
     function renderRadarCharts(radarData) {
         const createChart = (canvasId, data) => {
             const canvas = document.getElementById(canvasId);
@@ -4372,14 +4534,10 @@ function renderStrengthsAndGaps(strengths, gaps) {
                         fill: false,
                         borderColor: 'rgba(22, 163, 74, 0.9)',
                         pointBackgroundColor: 'rgb(22, 163, 74)',
-                        // --- THIS IS THE FINAL FIX ---
-                        // This explicitly tells the chart to draw the line for this specific dataset.
                         borderWidth: 2.5
                     }]
                 },
                 options: {
-                    // This general setting is removed as we now define borderWidth per dataset
-                    // elements: { line: { borderWidth: 3 } }, 
                     scales: {
                         r: {
                             angleLines: { display: false },
@@ -4387,6 +4545,20 @@ function renderStrengthsAndGaps(strengths, gaps) {
                             suggestedMax: 4,
                             ticks: { stepSize: 1 }
                         }
+                    },
+                    onClick: (event) => {
+                        const points = chartInstances[canvasId].getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                        if (points.length) {
+                            const competencyIndex = points[0].index;
+                            const competencyName = chartInstances[canvasId].data.labels[competencyIndex];
+                            const employeeId = document.getElementById('competency-employee-select').value;
+                            if (employeeId && competencyName) {
+                                openDeepDiveModal(employeeId, competencyName);
+                            }
+                        }
+                    },
+                     onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
                     }
                 }
             });
@@ -4445,6 +4617,76 @@ function renderStrengthsAndGaps(strengths, gaps) {
             }
         });
     }
+
+function openDeepDiveModal(employeeId, competencyName) {
+    const modal = document.getElementById('competency-deep-dive-modal');
+    document.getElementById('deep-dive-modal-title').textContent = `Deep Dive: ${competencyName}`;
+    modal.style.display = 'flex';
+    
+    // Show loader/placeholder
+    document.getElementById('deep-dive-content').innerHTML = '<div class="flex justify-center items-center h-48 col-span-2"><div id="loader"></div></div>';
+
+    google.script.run
+        .withSuccessHandler(data => {
+            if (data.error) {
+                document.getElementById('deep-dive-content').innerHTML = `<p class="text-red-500 col-span-2">Error: ${data.error}</p>`;
+                return;
+            }
+            
+            // Restore original content structure
+            document.getElementById('deep-dive-content').innerHTML = `
+                <div>
+                    <h3 class="text-xl font-bold text-slate-700 mb-4 text-center">Score Comparison</h3>
+                    <canvas id="deep-dive-bar-chart"></canvas>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-700 mb-4 text-center">Top Performers</h3>
+                    <ul id="top-performers-list" class="space-y-2"></ul>
+                </div>`;
+
+            // Draw Bar Chart
+            const ctx = document.getElementById('deep-dive-bar-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Employee', 'Team Avg', 'Company Avg'],
+                    datasets: [{
+                        label: 'Scores',
+                        data: [data.employeeScore, data.teamAverage, data.companyAverage],
+                        backgroundColor: ['#ef4444', '#f97316', '#22c55e']
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: { x: { beginAtZero: true, max: 4 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Populate Top Performers
+            const list = document.getElementById('top-performers-list');
+            list.innerHTML = '';
+            if (data.topPerformers.length > 0) {
+                data.topPerformers.forEach(performer => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center bg-gray-50 p-2 rounded';
+                    li.innerHTML = `<span class="text-sm font-medium text-gray-800">${performer.name}</span>
+                                    <span class="text-sm font-bold text-blue-600">${performer.score.toFixed(2)}</span>`;
+                    list.appendChild(li);
+                });
+            } else {
+                list.innerHTML = '<p class="text-gray-500 text-center">No top performers found.</p>';
+            }
+        })
+        .withFailureHandler(err => {
+            document.getElementById('deep-dive-content').innerHTML = `<p class="text-red-500 col-span-2">An error occurred: ${err.message}</p>`;
+        })
+        .getCompetencyDeepDive(employeeId, competencyName);
+}
+
+function closeDeepDiveModal() {
+    document.getElementById('competency-deep-dive-modal').style.display = 'none';
+}
 
 </script>
 </div>
