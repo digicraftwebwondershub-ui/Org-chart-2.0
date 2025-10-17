@@ -881,6 +881,8 @@ function getEmployeeData() {
 
 
     const snapshotTimestamp = PropertiesService.getScriptProperties().getProperty('snapshotTimestamp');
+    const dropdownLists = getListsForDropdowns();
+
     return {
       current: employeesToShow.filter(emp => emp.positionId),
       previous: previousHeadcount,
@@ -889,7 +891,8 @@ function getEmployeeData() {
       currentUserEmail: userEmail,
       userCanSeeAnyDepartment: hasReturnedAnyEmployee,
       totalApprovedPlantilla: totalApprovedPlantilla,
-      canEdit: canEdit
+      canEdit: canEdit,
+      dropdownListData: dropdownLists
     };
   } catch (e) {
     Logger.log('ERROR in getEmployeeData: ' + e.toString() + ' Stack: ' + e.stack);
@@ -2708,6 +2711,221 @@ function getAttritionRiskData() {
 
   } catch (e) {
     Logger.log('Error in getAttritionRiskData: ' + e.message);
+    return { error: e.message };
+  }
+}
+
+/**
+ * Fetches the data required to build a team competency heatmap.
+ * @param {string} department The department to filter by.
+ * @returns {Object} An object containing employee scores and competency headers.
+ */
+function getTeamCompetencyHeatmap(department) {
+  if (!department) return { error: 'Department not specified.' };
+
+  try {
+    const hubSs = SpreadsheetApp.getActiveSpreadsheet();
+    const mainSheet = hubSs.getSheets()[0];
+    const compSs = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
+    const compSheet = compSs.getSheetByName('Competency Matrix');
+
+    if (!mainSheet || !compSheet) {
+      return { error: 'Required sheets not found.' };
+    }
+
+    // Get department data from main sheet
+    const mainData = mainSheet.getDataRange().getValues();
+    const mainHeaders = mainData.shift();
+    const mainEmpIdIndex = mainHeaders.indexOf('Employee ID');
+    const mainDeptIndex = mainHeaders.indexOf('Department');
+    const employeeToDeptMap = new Map();
+    mainData.forEach(row => {
+      if (row[mainEmpIdIndex] && row[mainDeptIndex]) {
+        employeeToDeptMap.set(String(row[mainEmpIdIndex]).trim(), row[mainDeptIndex]);
+      }
+    });
+
+    // Get competency data
+    const compData = compSheet.getDataRange().getValues();
+    const rawCompHeaders = compData.shift();
+    const compHeaders = rawCompHeaders.map(h => (h || '').toString().replace(/\n|\r/g, ' ').trim());
+    const compEmpIdIndex = compHeaders.indexOf('EMPLOYEE ID');
+    const compNameIndex = compHeaders.indexOf('EMPLOYEE NAME');
+
+    // Filter employees by the selected department
+    const departmentEmployees = compData.filter(row => {
+      const empId = String(row[compEmpIdIndex]).trim();
+      return employeeToDeptMap.get(empId) === department;
+    });
+
+    if (departmentEmployees.length === 0) {
+      return { headers: [], employeeScores: [] }; // No employees in this department
+    }
+
+    const competencyColumns = [];
+    const competencyHeaderNames = [];
+
+    // --- REVISED: More robust competency column identification ---
+    const allDefinedCompetencies = [
+        "TRUSTWORTHINESS", "ENTREPRENEURIAL SPIRIT", "INNOVATION", "LEADERSHIP", "RESPECT FOR THE INDIVIDUAL",
+        "LEADERSHIP BY EXAMPLE", "DRIVE FOR RESULTS", "COACHING FOR SUCCESS", "INSPIRING LOYAL AND TRUST",
+        "WORKING ACROSS TEAMS", "TALENT MANAGEMENT AND DEVELOPMENT", "EMPOWERMENT", "COMMUNICATION", "EXECUTIVE DISPOSITION",
+        "PROJECT MANAGEMENT", "LEAN THINKING PRINCIPLES", "PROCESS STANDARDIZATION", "OPERATIONAL EXPERTISE",
+        "COST MANAGEMENT", "DATA-DRIVEN DECISION MAKING", "MANAGEMENT OF WORK SYSTEMS/BUSINESS PROCESS ORIENTATION"
+    ];
+
+    allDefinedCompetencies.forEach(competencyName => {
+        let actualIndex = compHeaders.indexOf(`${competencyName} [Actual]`);
+
+        // Fallback for headers that might just have the competency name
+        if (actualIndex === -1) {
+            const indices = compHeaders.map((h, i) => (h.trim().toUpperCase() === competencyName ? i : -1)).filter(i => i !== -1);
+            if (indices.length >= 2) {
+                actualIndex = indices[1]; // Assume the second column is 'Actual'
+            }
+        }
+        
+        if (actualIndex !== -1) {
+            competencyColumns.push({ name: competencyName, index: actualIndex });
+            competencyHeaderNames.push(competencyName);
+        }
+    });
+    // --- END REVISED SECTION ---
+
+    // Structure the data for the frontend
+    const employeeScores = departmentEmployees.map(row => {
+      const scores = competencyColumns.map(col => {
+        return parseFloat(row[col.index]) || 0;
+      });
+      return {
+        name: row[compNameIndex],
+        scores: scores
+      };
+    });
+
+    return {
+      headers: competencyHeaderNames,
+      employeeScores: employeeScores
+    };
+
+  } catch (e) {
+    Logger.log('Error in getTeamCompetencyHeatmap: ' + e.message);
+    return { error: e.message };
+  }
+}
+
+/**
+ * Fetches data for a deep dive into a specific competency for an employee.
+ * @param {string} employeeId The ID of the employee.
+ * @param {string} competencyName The name of the competency.
+ * @returns {Object} An object containing the deep dive data.
+ */
+function getCompetencyDeepDive(employeeId, competencyName) {
+  if (!employeeId || !competencyName) return { error: 'Employee ID or competency name not specified.' };
+
+  try {
+    const hubSs = SpreadsheetApp.getActiveSpreadsheet();
+    const mainSheet = hubSs.getSheets()[0];
+    const compSs = SpreadsheetApp.openById(COMPETENCY_SPREADSHEET_ID);
+    const compSheet = compSs.getSheetByName('Competency Matrix');
+
+    if (!mainSheet || !compSheet) {
+      return { error: 'Required sheets not found.' };
+    }
+
+    // Get department data from main sheet
+    const mainData = mainSheet.getDataRange().getValues();
+    const mainHeaders = mainData.shift();
+    const mainEmpIdIndex = mainHeaders.indexOf('Employee ID');
+    const mainDeptIndex = mainHeaders.indexOf('Department');
+    const employeeToDeptMap = new Map();
+    mainData.forEach(row => {
+      if (row[mainEmpIdIndex] && row[mainDeptIndex]) {
+        employeeToDeptMap.set(String(row[mainEmpIdIndex]).trim(), row[mainDeptIndex]);
+      }
+    });
+    
+    // Get competency data
+    const compData = compSheet.getDataRange().getValues();
+    const rawCompHeaders = compData.shift();
+    const compHeaders = rawCompHeaders.map(h => (h || '').toString().replace(/\n|\r/g, ' ').trim());
+    const compEmpIdIndex = compHeaders.indexOf('EMPLOYEE ID');
+    const compNameIndex = compHeaders.indexOf('EMPLOYEE NAME');
+    
+    let actualScoreIndex = -1;
+    let requiredScoreIndex = -1;
+
+    // Flexible header finding
+    const requiredHeader = `${competencyName} [Required]`;
+    const actualHeader = `${competencyName} [Actual]`;
+    
+    actualScoreIndex = compHeaders.indexOf(actualHeader);
+    
+    // Fallback for headers that might just have the competency name
+    if (actualScoreIndex === -1) {
+        const indices = compHeaders.map((h, i) => (h.trim() === competencyName ? i : -1)).filter(i => i !== -1);
+        if (indices.length >= 2) {
+          requiredScoreIndex = indices[0];
+          actualScoreIndex = indices[1];
+        }
+    }
+
+    if (actualScoreIndex === -1) {
+        return { error: `Competency '${competencyName}' score column not found.`};
+    }
+    
+    // --- CALCULATIONS ---
+    let employeeScore = 0;
+    let teamTotalScore = 0;
+    let teamMemberCount = 0;
+    let companyTotalScore = 0;
+    let companyMemberCount = 0;
+    const topPerformers = [];
+
+    const employeeDept = employeeToDeptMap.get(String(employeeId).trim());
+
+    compData.forEach(row => {
+      const currentEmpId = String(row[compEmpIdIndex]).trim();
+      const score = parseFloat(row[actualScoreIndex]) || 0;
+      
+      if(score > 0) {
+        // Company-wide calculation
+        companyTotalScore += score;
+        companyMemberCount++;
+
+        // Team calculation
+        if (employeeDept && employeeToDeptMap.get(currentEmpId) === employeeDept) {
+          teamTotalScore += score;
+          teamMemberCount++;
+        }
+
+        // Employee's specific score
+        if (currentEmpId === String(employeeId).trim()) {
+          employeeScore = score;
+        }
+
+        // Top performers list
+        topPerformers.push({ name: row[compNameIndex], score: score });
+      }
+    });
+
+    const teamAverage = teamMemberCount > 0 ? (teamTotalScore / teamMemberCount) : 0;
+    const companyAverage = companyMemberCount > 0 ? (companyTotalScore / companyMemberCount) : 0;
+
+    // Sort and get top 5 performers
+    const sortedTopPerformers = topPerformers
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    return {
+      employeeScore: employeeScore,
+      teamAverage: parseFloat(teamAverage.toFixed(2)),
+      companyAverage: parseFloat(companyAverage.toFixed(2)),
+      topPerformers: sortedTopPerformers
+    };
+
+  } catch (e) {
+    Logger.log('Error in getCompetencyDeepDive: ' + e.message);
     return { error: e.message };
   }
 }
