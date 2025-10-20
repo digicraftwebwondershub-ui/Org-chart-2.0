@@ -74,10 +74,10 @@ function check(description, condition) {
 
 // --- Test Execution ---
 try {
-    // 1. Simulate clicking the "Recruitment Report" card
-    const recruitmentCard = document.querySelector('div[onclick="navigateToView(\'reports\', \'demographics\')"]');
-    check("Recruitment card should exist", recruitmentCard);
-    recruitmentCard.click();
+    // 1. Simulate clicking the "HR Data Analytics" card (since Recruitment is disabled)
+    const analyticsCard = document.querySelector('div[onclick="navigateToView(\'analytics\', \'demographics\')"]');
+    check("HR Data Analytics card should exist", analyticsCard);
+    analyticsCard.click();
 
     // 2. Check that the tab area is now visible
     const tabArea = document.getElementById('tab-area');
