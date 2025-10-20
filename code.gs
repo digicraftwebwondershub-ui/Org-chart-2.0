@@ -709,13 +709,55 @@ function getEmployeeData() {
     const lastCol = Math.max(21, mainSheet.getLastColumn());
     const mainData = mainSheet.getRange(2, 1, mainSheet.getLastRow() - 1, lastCol).getValues();
     const employeeIdToPositionIdMap = new Map();
+
+    // --- START OPTIMIZATION ---
+    // In-line the logic from getListsForDropdowns to avoid a second sheet read and multiple loops.
+    const activeEmployees = [];
+    const divisions = new Set();
+    const groups = new Set();
+    const departments = new Set();
+    const sections = new Set();
+
     mainData.forEach(row => {
       const employeeId = row[1] ? row[1].toString().trim() : null;
       const positionId = row[0] ? row[0].toString().trim() : null;
       if (employeeId && positionId) {
         employeeIdToPositionIdMap.set(employeeId, positionId);
       }
+      // Populate dropdown list data in the same loop
+      if (employeeId && (row[17] || '').toLowerCase() !== 'inactive') {
+          activeEmployees.push({ id: employeeId, name: row[2] });
+      }
+      if(row[6]) divisions.add(row[6]);
+      if(row[7]) groups.add(row[7]);
+      if(row[8]) departments.add(row[8]);
+      if(row[9]) sections.add(row[9]);
     });
+
+    const refSheet = spreadsheet.getSheetByName("Reference Data");
+    let staticLists = {};
+    if (refSheet) {
+        const refData = refSheet.getDataRange().getValues();
+        const headers = refData.shift();
+        headers.forEach((header, colIndex) => {
+            if (header) {
+                const key = header.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/gi, '');
+                const values = refData.map(row => row[colIndex]).filter(String).sort();
+                staticLists[key] = values;
+            }
+        });
+    }
+
+    const dropdownListData = {
+        managers: activeEmployees.sort((a, b) => a.name.localeCompare(b.name)),
+        divisions: [...divisions].sort(),
+        groups: [...groups].sort(),
+        departments: [...departments].sort(),
+        sections: [...sections].sort(),
+        ...staticLists
+    };
+    // --- END OPTIMIZATION ---
+
     const historicalNotes = getHistoricalNotes();
     const incumbencyHistory = getIncumbencyHistory();
     const employeesToShow = [];
@@ -736,6 +778,9 @@ function getEmployeeData() {
           managerPositionId = managerEmployeeId;
         } else {
           managerPositionId = employeeIdToPositionIdMap.get(managerEmployeeId) || '';
+        }
+        if (!managerPositionId) {
+            Logger.log(`Could not find manager position for employee ${row[2]} (Emp ID: ${row[1]}) who has manager ID: ${managerEmployeeId}`);
         }
       }
 
@@ -881,7 +926,6 @@ function getEmployeeData() {
 
 
     const snapshotTimestamp = PropertiesService.getScriptProperties().getProperty('snapshotTimestamp');
-    const dropdownLists = getListsForDropdowns();
 
     return {
       current: employeesToShow.filter(emp => emp.positionId),
@@ -892,13 +936,14 @@ function getEmployeeData() {
       userCanSeeAnyDepartment: hasReturnedAnyEmployee,
       totalApprovedPlantilla: totalApprovedPlantilla,
       canEdit: canEdit,
-      dropdownListData: dropdownLists
+      dropdownListData: dropdownListData
     };
   } catch (e) {
     Logger.log('ERROR in getEmployeeData: ' + e.toString() + ' Stack: ' + e.stack);
     return null;
   }
 }
+
 
 
 function getHistoricalNotes() {

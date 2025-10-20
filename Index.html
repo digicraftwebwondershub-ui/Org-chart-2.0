@@ -1566,6 +1566,8 @@ function switchTab(tabId) {
       drawTalentInsights(); // <-- ADD THIS LINE
   } else if (tabId === 'adoption' && !adoptionDataLoaded) {
       drawAdoptionDashboard();
+  } else if (tabId === 'competency' && !competencyViewInitialized) {
+      initializeCompetencyView();
   }
 }
 
@@ -2317,7 +2319,7 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
     populateLevelLegend();
     setupPageEventListeners();
     populateFilters();
-    initializeCompetencyView();
+    // initializeCompetencyView(); // This will be moved to switchTab
     updateUI();
   }
 
@@ -2571,14 +2573,14 @@ function drawChart(filteredData) {
       chart.draw(dataTable, { allowHtml: true, allowCollapse: true });
     }
 
-  function showTooltip(event, nodeId) {
+function showTooltip(event, nodeId) {
     clearTimeout(tooltipTimeout);
     var employee = employeeMap.get(nodeId); if (!employee) return;
     var tooltipDiv = document.getElementById('custom-tooltip');
     var contentHtml = '';
     var borderColor;
     var borderStyle = 'solid';
-    var history = employee.historicalNote || {};
+
     if (employee.employeeId) {
       var contractTypeUpper = employee.stylingContractType ? employee.stylingContractType.toUpperCase() : '';
       if (contractTypeUpper === 'JREL' || contractTypeUpper === 'JPRO') {
@@ -2608,16 +2610,14 @@ function drawChart(filteredData) {
       '<p><strong>Section:</strong> ' + (employee.section || 'N/A') + '</p>' +
       '<p><strong>Reporting to:</strong> ' + (employee.managerName || 'N/A') + '</p>';
       
-      let incumbentHtml = '';
-      if (history.lastIncumbents && history.lastIncumbents.length > 0) {
-        incumbentHtml = history.lastIncumbents[0];
-        if (history.lastIncumbents.length > 0) { 
-          incumbentHtml += ` <span onclick="openHistoryModal('${employee.positionId}')" class="text-blue-600 hover:underline cursor-pointer" style="font-weight: bold;">(View History)</span>`;
-        }
-      } else if (history.isNewPosition) {
-        incumbentHtml = '<i>Newly Created Position</i>';
-      } else {
-        incumbentHtml = '<i>No history available</i>';
+      let incumbentHtml = '<i>No history available</i>';
+      if (employee.historicalNote) {
+          if (employee.historicalNote.lastIncumbents && employee.historicalNote.lastIncumbents.length > 0) {
+              incumbentHtml = employee.historicalNote.lastIncumbents[0];
+              incumbentHtml += ` <span onclick="openHistoryModal('${employee.positionId}')" class="text-blue-600 hover:underline cursor-pointer" style="font-weight: bold;">(View History)</span>`;
+          } else if (employee.historicalNote.isNewPosition) {
+              incumbentHtml = '<i>Newly Created Position</i>';
+          }
       }
       contentHtml += '<p><strong>Last Incumbent:</strong> ' + incumbentHtml + '</p>';
       
@@ -2637,16 +2637,14 @@ function drawChart(filteredData) {
         if (normalizedStatus && statusNotes[normalizedStatus]) {
           var tagColor = statusTagColors[normalizedStatus];
           var note = statusNotes[normalizedStatus];
-          var statusNoteHtml = '';
-          if (['Internal Transfer', 'Promotion', 'Lateral Transfer'].includes(normalizedStatus) && history.previousRole) {
-            statusNoteHtml = '<p style="font-size: 11px; color: ' + tagColor + '; padding-left: 18px;"><i>' + history.previousRole + '</i></p>';
-          }
-          contentHtml += '<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e5e7eb;">' +
+          contentHtml += '<div id="tooltip-status-section" style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e5e7eb;">' +
           '<div style="display: flex; align-items: center; font-weight: bold; color: ' + tagColor + ';">' +
           '<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ' + tagColor + '; margin-right: 8px;"></span>' + normalizedStatus + '</div>' +
-          '<p style="font-size: 11px; color: #6b7280; margin-top: 2px; padding-left: 18px;">' + note + '</p>' +
-          statusNoteHtml +
-          '</div>';
+          '<p style="font-size: 11px; color: #6b7280; margin-top: 2px; padding-left: 18px;">' + note + '</p>';
+          if (employee.historicalNote && employee.historicalNote.previousRole && ['Internal Transfer', 'Promotion', 'Lateral Transfer'].includes(normalizedStatus)) {
+              contentHtml += '<p style="font-size: 11px; color: ' + tagColor + '; padding-left: 18px;"><i>' + employee.historicalNote.previousRole + '</i></p>';
+          }
+          contentHtml += '</div>';
         }
       }
     } else { // Vacant Node
@@ -2658,19 +2656,14 @@ function drawChart(filteredData) {
       '<p><strong>Group:</strong> ' + (employee.group || 'N/A') + '</p>' +
       '<p><strong>Department:</strong> ' + (employee.department || 'N/A') + '</p>';
       
-      let incumbentHtml = '';
-      if (history.lastIncumbents && history.lastIncumbents.length > 0) {
-        incumbentHtml = history.lastIncumbents[0];
-        if (history.lastIncumbents.length > 0) {
+      let incumbentHtml = '<i>No history available</i>';
+      if (employee.historicalNote && employee.historicalNote.lastIncumbents && employee.historicalNote.lastIncumbents.length > 0) {
+          incumbentHtml = employee.historicalNote.lastIncumbents[0];
           incumbentHtml += ` <span onclick="openHistoryModal('${employee.positionId}')" class="text-blue-600 hover:underline cursor-pointer" style="font-weight: bold;">(View History)</span>`;
-        }
-      } else if (history.isNewPosition) {
-        incumbentHtml = '<i>Newly Created Position</i>';
-      } else {
-        incumbentHtml = '<i>No history available</i>';
       }
       contentHtml += '<p><strong>Last Incumbent:</strong> ' + incumbentHtml + '</p>';
     }
+
     tooltipDiv.innerHTML = contentHtml;
     tooltipDiv.style.borderColor = borderColor;
     tooltipDiv.style.borderStyle = borderStyle;
@@ -2685,7 +2678,7 @@ function drawChart(filteredData) {
     tooltipDiv.style.display = 'block';
   }
 
-  function hideTooltip() { 
+  function hideTooltip() {
     tooltipTimeout = setTimeout(function() {
       document.getElementById('custom-tooltip').style.display = 'none';
     }, 300);
@@ -2699,7 +2692,14 @@ function drawChart(filteredData) {
     var positionsToProcess = Array.from(finalSet);
     positionsToProcess.forEach(function(pos) {
       var current = pos;
+      var path = new Set(); // Keep track of managers in this specific chain
       while (current && current.managerId) {
+        if (path.has(current.managerId)) {
+          console.error('Circular reference detected in reporting line for position:', pos.positionId, 'at manager:', current.managerId);
+          break; // Break the loop to prevent freezing
+        }
+        path.add(current.managerId);
+
         var manager = employeeMap.get(current.managerId);
         if (manager && !finalSet.has(manager)) {
           finalSet.add(manager);
