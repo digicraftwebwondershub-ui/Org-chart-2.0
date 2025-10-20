@@ -9,6 +9,7 @@
 const WEB_APP_URL = "YOUR_WEB_APP_URL_GOES_HERE"; // PASTE YOUR NEW DEPLOYMENT URL HERE
 const JD_GENERAL_FOLDER_ID = '1Sv7uvDKlzFhEiM1ljCrRGvC51KgIZJfp';
 const JD_INCUMBENT_FOLDER_ID = '1ryXesBBwLs8Y1oEfLYDhDIxPQdeB_Ngx';
+const CHANGE_REQUESTS_FOLDER_ID = '1G57OJTZQ84ODeZLBiRkDwvmU-FVq2CcP';
 
 
 // Defines the sequential order of approval roles
@@ -44,6 +45,127 @@ function clearScriptCache() {
   if (response == ui.Button.YES) {
     CacheService.getScriptCache().removeAll(['incumbency_history_04-CSD-006']);
     ui.alert('Success! The script cache has been cleared. Please reload the web app for changes to take effect.');
+  }
+}
+
+function processRequestAction(requestId, action, comments) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Org Chart Requests');
+    if (!sheet) {
+      throw new Error('"Org Chart Requests" sheet not found.');
+    }
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const headerMap = new Map(headers.map((h, i) => [h, i]));
+
+    const requestIdCol = headerMap.get('RequestID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][requestIdCol] === requestId) {
+        const rowData = data[i];
+
+        // Update the status and approver details
+        sheet.getRange(i + 1, headerMap.get('Status') + 1).setValue(action);
+        sheet.getRange(i + 1, headerMap.get('ApproverEmail') + 1).setValue(Session.getActiveUser().getEmail());
+        sheet.getRange(i + 1, headerMap.get('ApprovalTimestamp') + 1).setValue(new Date());
+        sheet.getRange(i + 1, headerMap.get('ApproverComments') + 1).setValue(comments || '');
+
+        if (action === 'Approved') {
+          const requestType = rowData[headerMap.get('RequestType')];
+          let dataToSave = {};
+          let mode = 'edit'; // Default to edit
+
+          // --- IMPLEMENTATION LOGIC ---
+          if (requestType.includes('Transfer') || requestType.includes('Promotion')) {
+            dataToSave = {
+              positionid: rowData[headerMap.get('NewPositionID')],
+              employeeid: rowData[headerMap.get('EmployeeID')],
+              employeename: rowData[headerMap.get('EmployeeName')],
+              status: requestType,
+              startdateinposition: rowData[headerMap.get('EffectiveDate')]
+            };
+          } else if (requestType.includes('replacement for vacancy')) {
+            dataToSave = {
+              positionid: rowData[headerMap.get('VacantPositionID')],
+              employeeid: rowData[headerMap.get('NewEmployeeID')],
+              employeename: rowData[headerMap.get('NewEmployeeName')],
+              status: 'FILLED VACANCY',
+              startdateinposition: rowData[headerMap.get('EffectiveDate')]
+            };
+          } else if (requestType.includes('newly created position')) {
+            const division = rowData[headerMap.get('Division')];
+            const section = rowData[headerMap.get('Section')];
+            const newPositionId = generateNewPositionId(division, section);
+            if (newPositionId.startsWith('ERROR')) {
+              throw new Error('Could not generate new Position ID: ' + newPositionId);
+            }
+
+            dataToSave = {
+              positionid: newPositionId,
+              jobtitle: rowData[headerMap.get('NewJobTitle')],
+              level: rowData[headerMap.get('NewLevel')],
+              division: division,
+              group: rowData[headerMap.get('Group')],
+              department: rowData[headerMap.get('Department')],
+              section: section,
+              reportingtoid: rowData[headerMap.get('ReportingToId')],
+              status: 'NEW HIRE',
+              employeename: rowData[headerMap.get('NewEmployeeName')],
+              employeeid: rowData[headerMap.get('NewEmployeeID')],
+            };
+            mode = 'add';
+          }
+
+          // Call the existing save function to apply the change
+          if (Object.keys(dataToSave).length > 0) {
+            saveEmployeeData(dataToSave, mode);
+            sheet.getRange(i + 1, headerMap.get('ImplementerEmail') + 1).setValue('System');
+            sheet.getRange(i + 1, headerMap.get('ImplementationTimestamp') + 1).setValue(new Date());
+          }
+        }
+
+        return `Request ${requestId} has been successfully ${action}.`;
+      }
+    }
+    throw new Error(`Request ID ${requestId} not found.`);
+  } catch (e) {
+    Logger.log('Error in processRequestAction: ' + e.message);
+    throw new Error('Failed to process request action. ' + e.message);
+  }
+}
+
+function getChangeRequests() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Org Chart Requests');
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { myRequests: [], approvals: [] };
+    }
+    const data = sheet.getDataRange().getValues();
+    const headers = data.shift();
+    const userEmail = Session.getActiveUser().getEmail();
+    const supportDocIndex = headers.indexOf('SupportingDocuments');
+
+    const requests = data.map(row => {
+      const request = {};
+      headers.forEach((header, i) => {
+        if (i === supportDocIndex && row[i]) {
+          request[header] = `<a href="${row[i]}" target="_blank">View Documents</a>`;
+        } else {
+          request[header] = row[i];
+        }
+      });
+      return request;
+    });
+
+    const myRequests = requests.filter(r => r.RequestorEmail === userEmail);
+    const approvals = requests.filter(r => r.Status === 'Pending' && r.ApproverEmail === userEmail);
+
+    return { myRequests, approvals };
+  } catch (e) {
+    Logger.log('Error in getChangeRequests: ' + e.message);
+    throw new Error('Failed to retrieve change requests. ' + e.message);
   }
 }
 
@@ -696,12 +818,13 @@ function getEmployeeData() {
       return allowedDeptDivs.includes(employeeDepartment.toLowerCase()) || allowedDeptDivs.includes(employeeDivision.toLowerCase());
     };
     const canEdit = userPermissions['Can Edit'] === 'x' || userPermissions['Can Edit'] === 'all' || userPermissions['Can Edit'] === 'anyone';
+    const canApprove = userPermissions['Is Approver'] === 'x' || userPermissions['Is Approver'] === 'all' || userPermissions['Is Approver'] === 'anyone';
 
 
     if (mainSheet.getLastRow() < 2) {
       return {
         current: [], previous: {}, snapshotTimestamp: null, currentUserEmail: userEmail,
-        userCanSeeAnyDepartment: false, totalApprovedPlantilla: 0, previousDateString: null, canEdit: canEdit
+        userCanSeeAnyDepartment: false, totalApprovedPlantilla: 0, previousDateString: null, canEdit: canEdit, canApprove: canApprove
       };
     }
 
@@ -936,6 +1059,7 @@ function getEmployeeData() {
       userCanSeeAnyDepartment: hasReturnedAnyEmployee,
       totalApprovedPlantilla: totalApprovedPlantilla,
       canEdit: canEdit,
+      canApprove: canApprove,
       dropdownListData: dropdownListData
     };
   } catch (e) {
@@ -3093,6 +3217,61 @@ function checkUserAccess() {
 }
 
 // --- END: NEW USER AUTHENTICATION FUNCTION ---
+
+// --- START: CHANGE REQUEST FUNCTIONS ---
+
+function submitChangeRequest(requestData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Org Chart Requests');
+    if (!sheet) {
+      throw new Error('"Org Chart Requests" sheet not found.');
+    }
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    const requestId = 'REQ-' + new Date().getTime();
+    let folderUrl = '';
+
+    // Handle file uploads
+    if (requestData.files && requestData.files.length > 0) {
+      const parentFolder = DriveApp.getFolderById(CHANGE_REQUESTS_FOLDER_ID);
+      const requestFolder = parentFolder.createFolder(requestId);
+
+      requestData.files.forEach(file => {
+        const decodedContent = Utilities.base64Decode(file.content);
+        const blob = Utilities.newBlob(decodedContent, file.mimeType, file.name);
+        requestFolder.createFile(blob);
+      });
+
+      folderUrl = requestFolder.getUrl();
+    }
+
+    const newRow = headers.map(header => {
+      switch (header) {
+        case 'RequestID':
+          return requestId;
+        case 'RequestorEmail':
+          return Session.getActiveUser().getEmail();
+        case 'SubmissionTimestamp':
+          return new Date();
+        case 'Status':
+          return 'Pending';
+        case 'SupportingDocuments':
+          return folderUrl;
+        default:
+          return requestData[header] || '';
+      }
+    });
+
+    sheet.appendRow(newRow);
+    return 'Request submitted successfully.';
+  } catch (e) {
+    Logger.log('Error in submitChangeRequest: ' + e.message);
+    throw new Error('Failed to submit request. ' + e.message);
+  }
+}
+
+// --- END: CHANGE REQUEST FUNCTIONS ---
 
 /**
  * =================================================================================================
