@@ -1287,7 +1287,13 @@
             <option value="Hiring of a new employee (replacement for vacancy)">Hiring of a new employee (replacement for vacancy)</option>
           </select>
         </div>
-        <div id="request-fields"></div>
+        <div>
+          <label class="block font-medium">Select Approver</label>
+          <select id="approver-email-select" name="ApproverEmail" class="mt-1 p-2 w-full border rounded">
+            <option value="">Loading approvers...</option>
+          </select>
+        </div>
+        <div id="request-fields" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
       </div>
       <div class="mt-6 flex justify-end gap-3">
         <button type="button" onclick="closeRequestModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
@@ -4406,6 +4412,28 @@ function initializeCompetencyView() {
 function openRequestModal() {
   document.getElementById('request-modal').style.display = 'flex';
   document.getElementById('request-type').addEventListener('change', handleRequestTypeChange);
+
+  const approverSelect = document.getElementById('approver-email-select');
+  approverSelect.innerHTML = '<option value="">Loading approvers...</option>';
+  
+  google.script.run
+    .withSuccessHandler(approvers => {
+      approverSelect.innerHTML = '<option value="">-- Select an Approver --</option>';
+      if (approvers && approvers.length > 0) {
+        approvers.forEach(approver => {
+          const option = document.createElement('option');
+          option.value = approver.email;
+          option.textContent = approver.email;
+          approverSelect.appendChild(option);
+        });
+      } else {
+        approverSelect.innerHTML = '<option value="">No approvers found</option>';
+      }
+    })
+    .withFailureHandler(err => {
+      approverSelect.innerHTML = `<option value="">Error: ${err.message}</option>`;
+    })
+    .getApproverList();
 }
 
 function closeRequestModal() {
@@ -4547,6 +4575,7 @@ function submitRequest() {
   Promise.all(filePromises).then(fileContents => {
     const requestData = {
       RequestType: requestType,
+      ApproverEmail: document.getElementById('approver-email-select').value,
       Justification: document.getElementById('justification')?.value,
       EffectiveDate: document.getElementById('effective-date-request')?.value,
       EmployeeID: document.querySelector('#employee-request-dropdown .searchable-dropdown-input')?.dataset.value,
