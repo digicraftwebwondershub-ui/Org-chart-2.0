@@ -653,6 +653,7 @@
             <input type="checkbox" id="show-inactive-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
             <label for="show-inactive-checkbox" class="ml-2 block text-sm font-medium text-gray-700">Show Inactive Positions</label>
         </div>
+        <button id="request-change-btn" onclick="openRequestModal()" class="hidden bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600">Request Change to Org Chart</button>
         <button id="add-employee-btn" onclick="openModal('add')" class="hidden bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add New Position</button>
     </div>
   </div>
@@ -661,6 +662,8 @@
   <div class="border-b border-gray-200 mb-6">
   <nav id="tab-navigation" class="flex -mb-px" aria-label="Tabs">
     <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active org-view-tab">Org Chart</div>
+    <div onclick="switchTab('my-requests')" id="tab-my-requests" class="tab reports-view-tab" style="display: none;">My Requests</div>
+    <div onclick="switchTab('approvals')" id="tab-approvals" class="tab reports-view-tab" style="display: none;">Approvals</div>
     <div onclick="switchTab('demographics')" id="tab-demographics" class="tab analytics-view-tab">Demographics</div>
     <div onclick="switchTab('resignation')" id="tab-resignation" class="tab analytics-view-tab">Resignation</div>
     <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab analytics-view-tab">Employee Movement</div>
@@ -1264,6 +1267,54 @@
 </main> <!-- Close main content area -->
 </div> <!-- Close app -->
 
+<!-- Request Change Modal -->
+<div id="request-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-slate-800">Request Change to Org Chart</h2>
+      <button onclick="closeRequestModal()" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+    </div>
+    <form id="request-form">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-medium">Request Type</label>
+          <select id="request-type" name="requesttype" class="mt-1 p-2 w-full border rounded">
+            <option value="">-- Select a Request Type --</option>
+            <option value="Lateral Transfer">Lateral Transfer</option>
+            <option value="Promotion">Promotion</option>
+            <option value="Internal Transfer">Internal Transfer</option>
+            <option value="Hiring of a new employee (newly created position)">Hiring of a new employee (newly created position)</option>
+            <option value="Hiring of a new employee (replacement for vacancy)">Hiring of a new employee (replacement for vacancy)</option>
+          </select>
+        </div>
+        <div id="request-fields"></div>
+      </div>
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" onclick="closeRequestModal()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+        <button type="button" onclick="submitRequest()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- My Requests View -->
+<div id="my-requests-view" class="tab-content">
+  <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold text-slate-800 mb-4">My Change Requests</h2>
+    <table id="my-requests-table" class="display responsive nowrap" style="width:100%">
+    </table>
+  </div>
+</div>
+
+<!-- Approvals View -->
+<div id="approvals-view" class="tab-content">
+  <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold text-slate-800 mb-4">Change Request Approvals</h2>
+    <table id="approvals-table" class="display responsive nowrap" style="width:100%">
+    </table>
+  </div>
+</div>
+
 <!-- Predictive View -->
 <div id="predictive-view" class="tab-content">
 
@@ -1391,6 +1442,7 @@
   var snapshotTimestamp = null;
   var currentUserEmail = null;
   var userCanEdit = false;
+  var userCanApprove = false;
   var totalApprovedPlantilla = 0;
   var previousDateString = null;
   var employeeMap = new Map();
@@ -1564,6 +1616,10 @@ function switchTab(tabId) {
       drawPredictiveInsights();
       drawHiringPredictions();
       drawTalentInsights(); // <-- ADD THIS LINE
+  } else if (tabId === 'my-requests') {
+    drawMyRequestsTable();
+  } else if (tabId === 'approvals') {
+    drawApprovalsTable();
   } else if (tabId === 'adoption' && !adoptionDataLoaded) {
       drawAdoptionDashboard();
   } else if (tabId === 'competency' && !competencyViewInitialized) {
@@ -2307,6 +2363,7 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
     snapshotTimestamp = data.snapshotTimestamp;
     currentUserEmail = data.currentUserEmail;
     userCanEdit = data.canEdit;
+    userCanApprove = data.canApprove;
     totalApprovedPlantilla = data.totalApprovedPlantilla;
     previousDateString = data.previousDateString;
     dropdownListData = data.dropdownListData;
@@ -2314,7 +2371,14 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
 
     if(userCanEdit) {
       document.getElementById('add-employee-btn').style.display = 'block';
+    } else {
+      document.getElementById('request-change-btn').style.display = 'block';
+      document.getElementById('tab-my-requests').style.display = 'block';
     }
+    if (userCanApprove) {
+      document.getElementById('tab-approvals').style.display = 'block';
+    }
+
 
     populateLevelLegend();
     setupPageEventListeners();
@@ -4339,6 +4403,135 @@ function initializeCompetencyView() {
     individualProfileView.style.display = 'block';
 }
 
+function openRequestModal() {
+  document.getElementById('request-modal').style.display = 'flex';
+  document.getElementById('request-type').addEventListener('change', handleRequestTypeChange);
+}
+
+function closeRequestModal() {
+  document.getElementById('request-modal').style.display = 'none';
+  document.getElementById('request-type').removeEventListener('change', handleRequestTypeChange);
+  document.getElementById('request-fields').innerHTML = '';
+  document.getElementById('request-form').reset();
+}
+
+function handleRequestTypeChange() {
+  const requestType = document.getElementById('request-type').value;
+  const fieldsContainer = document.getElementById('request-fields');
+  fieldsContainer.innerHTML = '';
+
+  let fieldsHtml = '';
+
+  switch (requestType) {
+    case 'Lateral Transfer':
+    case 'Promotion':
+    case 'Internal Transfer':
+      fieldsHtml = `
+        <div><label class="block font-medium">Employee</label><div id="employee-request-dropdown"></div></div>
+        <div><label class="block font-medium">Current Position ID</label><input type="text" id="current-position-id" readonly class="mt-1 p-2 w-full border rounded bg-gray-100"></div>
+        <div><label class="block font-medium">New Position ID</label><div id="new-position-dropdown"></div></div>
+        <div><label class="block font-medium">Effective Date</label><input type="date" id="effective-date-request" class="mt-1 p-2 w-full border rounded"></div>
+        <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded"></textarea></div>
+      `;
+      break;
+    case 'Hiring of a new employee (newly created position)':
+      fieldsHtml = `
+        <div><label class="block font-medium">Division</label><div id="request-division-dropdown"></div></div>
+        <div><label class="block font-medium">Group</label><div id="request-group-dropdown"></div></div>
+        <div><label class="block font-medium">Department</label><div id="request-department-dropdown"></div></div>
+        <div><label class="block font-medium">Section</label><div id="request-section-dropdown"></div></div>
+        <div><label class="block font-medium">New Position Job Title</label><div id="new-job-title-dropdown"></div></div>
+        <div><label class="block font-medium">New Position Level</label><div id="new-level-dropdown"></div></div>
+        <div><label class="block font-medium">Reporting To</label><div id="reporting-to-request-dropdown"></div></div>
+        <div><label class="block font-medium">New Employee Name</label><input type="text" id="new-employee-name" class="mt-1 p-2 w-full border rounded"></div>
+        <div><label class="block font-medium">New Employee ID</label><input type="text" id="new-employee-id" class="mt-1 p-2 w-full border rounded"></div>
+        <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded" rows="3"></textarea></div>
+      `;
+      break;
+    case 'Hiring of a new employee (replacement for vacancy)':
+      fieldsHtml = `
+        <div><label class="block font-medium">Vacant Position ID</label><div id="vacant-position-dropdown"></div></div>
+        <div><label class="block font-medium">New Employee Name</label><input type="text" id="new-employee-name" class="mt-1 p-2 w-full border rounded"></div>
+        <div><label class="block font-medium">New Employee ID</label><input type="text" id="new-employee-id" class="mt-1 p-2 w-full border rounded"></div>
+        <div><label class="block font-medium">Effective Date</label><input type="date" id="effective-date-request" class="mt-1 p-2 w-full border rounded"></div>
+        <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded"></textarea></div>
+      `;
+      break;
+  }
+  fieldsContainer.innerHTML = fieldsHtml;
+
+  // Populate dropdowns
+  if (requestType.includes('Transfer') || requestType.includes('Promotion')) {
+    createSearchableDropdown('employee-request-dropdown', dropdownListData.managers || [], 'name', 'id', (employeeId) => {
+      const employee = fullEmployeeData.find(e => e.employeeId === employeeId);
+      if (employee) {
+        document.getElementById('current-position-id').value = employee.positionId;
+      }
+    });
+    const vacantPositions = fullEmployeeData.filter(p => !p.employeeId).map(p => p.positionId);
+    createSearchableDropdown('new-position-dropdown', vacantPositions, null, null, null);
+  }
+  if (requestType.includes('newly created')) {
+    createSearchableDropdown('new-job-title-dropdown', dropdownListData.jobtitle || [], null, null, null);
+    createSearchableDropdown('new-level-dropdown', dropdownListData.level || [], null, null, null);
+    createSearchableDropdown('reporting-to-request-dropdown', dropdownListData.managers || [], 'name', 'id', null);
+
+    // Dependent dropdowns for new position location
+    createSearchableDropdown('request-division-dropdown', dropdownListData.divisions || [], null, null, (sel) => updateRequestLocationDropdowns('division', sel));
+    createSearchableDropdown('request-group-dropdown', [], null, null, (sel) => updateRequestLocationDropdowns('group', sel));
+    createSearchableDropdown('request-department-dropdown', [], null, null, (sel) => updateRequestLocationDropdowns('department', sel));
+    createSearchableDropdown('request-section-dropdown', [], null, null, null);
+  }
+  if (requestType.includes('replacement')) {
+    const vacantPositions = fullEmployeeData.filter(p => !p.employeeId).map(p => p.positionId);
+    createSearchableDropdown('vacant-position-dropdown', vacantPositions, null, null, null);
+  }
+}
+
+function submitRequest() {
+  const requestType = document.getElementById('request-type').value;
+  if (!requestType) {
+    alert('Please select a request type.');
+    return;
+  }
+
+  const requestData = {
+    RequestType: requestType,
+    Justification: document.getElementById('justification')?.value,
+    EffectiveDate: document.getElementById('effective-date-request')?.value,
+    EmployeeID: document.querySelector('#employee-request-dropdown .searchable-dropdown-input')?.dataset.value,
+    EmployeeName: document.querySelector('#employee-request-dropdown .searchable-dropdown-input')?.value,
+    CurrentPositionID: document.getElementById('current-position-id')?.value,
+    NewPositionID: document.querySelector('#new-position-dropdown .searchable-dropdown-input')?.value,
+    NewJobTitle: document.querySelector('#new-job-title-dropdown .searchable-dropdown-input')?.value,
+    NewLevel: document.querySelector('#new-level-dropdown .searchable-dropdown-input')?.value,
+    Division: document.querySelector('#request-division-dropdown .searchable-dropdown-input')?.value,
+    Group: document.querySelector('#request-group-dropdown .searchable-dropdown-input')?.value,
+    Department: document.querySelector('#request-department-dropdown .searchable-dropdown-input')?.value,
+    Section: document.querySelector('#request-section-dropdown .searchable-dropdown-input')?.value,
+    ReportingToId: document.querySelector('#reporting-to-request-dropdown .searchable-dropdown-input')?.dataset.value,
+    VacantPositionID: document.querySelector('#vacant-position-dropdown .searchable-dropdown-input')?.value,
+    NewEmployeeName: document.getElementById('new-employee-name')?.value,
+    NewEmployeeID: document.getElementById('new-employee-id')?.value,
+  };
+
+  showSavingOverlay('Submitting Request...');
+  google.script.run
+    .withSuccessHandler(() => {
+      hideSavingOverlay();
+      alert('Request submitted successfully!');
+      closeRequestModal();
+      if (document.getElementById('my-requests-view').classList.contains('active')) {
+        drawMyRequestsTable();
+      }
+    })
+    .withFailureHandler((err) => {
+      hideSavingOverlay();
+      alert('Error submitting request: ' + err.message);
+    })
+    .submitChangeRequest(requestData);
+}
+
 function drawTeamCompetencyHeatmap(department) {
     const loader = document.getElementById('heatmap-loader');
     const container = document.getElementById('heatmap-container');
@@ -4689,6 +4882,116 @@ function openDeepDiveModal(employeeId, competencyName) {
 
 function closeDeepDiveModal() {
     document.getElementById('competency-deep-dive-modal').style.display = 'none';
+}
+
+function drawMyRequestsTable() {
+  showSavingOverlay('Loading My Requests...');
+  google.script.run
+    .withSuccessHandler(data => {
+      const table = $('#my-requests-table');
+      if ($.fn.DataTable.isDataTable(table)) {
+        table.DataTable().destroy();
+      }
+      table.empty();
+
+      const columns = data.myRequests.length > 0 ? Object.keys(data.myRequests[0]).map(h => ({ title: h, data: h })) : [{title: 'No requests found'}];
+
+      table.DataTable({
+        data: data.myRequests,
+        columns: columns,
+        responsive: true,
+        dom: 'Bfrtip',
+        buttons: ['pdfHtml5']
+      });
+      hideSavingOverlay();
+    })
+    .withFailureHandler(err => {
+      hideSavingOverlay();
+      alert('Error loading requests: ' + err.message);
+    })
+    .getChangeRequests();
+}
+
+function drawApprovalsTable() {
+  showSavingOverlay('Loading Approvals...');
+  google.script.run
+    .withSuccessHandler(data => {
+      const table = $('#approvals-table');
+      if ($.fn.DataTable.isDataTable(table)) {
+        table.DataTable().destroy();
+      }
+      table.empty();
+
+      if (data.approvals.length === 0) {
+        table.html('<thead><tr><th>Info</th></tr></thead><tbody><tr><td>No pending approvals.</td></tr></tbody>');
+        hideSavingOverlay();
+        return;
+      }
+
+      const columns = Object.keys(data.approvals[0]).map(h => ({ title: h, data: h }));
+      columns.push({
+        title: 'Actions',
+        data: 'RequestID',
+        render: function(data) {
+          return `<button onclick="handleApprovalAction('${data}', 'Approved')" class="bg-green-500 text-white p-1 rounded text-xs">Approve</button>
+                  <button onclick="handleApprovalAction('${data}', 'Rejected')" class="bg-red-500 text-white p-1 rounded text-xs ml-1">Reject</button>`;
+        }
+      });
+
+      table.DataTable({
+        data: data.approvals,
+        columns: columns,
+        responsive: true,
+        dom: 'Bfrtip',
+        buttons: ['pdfHtml5']
+      });
+      hideSavingOverlay();
+    })
+    .withFailureHandler(err => {
+      hideSavingOverlay();
+      alert('Error loading approvals: ' + err.message);
+    })
+    .getChangeRequests();
+}
+
+function handleApprovalAction(requestId, action) {
+  const comments = prompt(`Please provide comments for this action (${action}):`);
+  if (comments === null) { // User cancelled the prompt
+    return;
+  }
+
+  showSavingOverlay('Processing Action...');
+  google.script.run
+    .withSuccessHandler(response => {
+      hideSavingOverlay();
+      alert(response);
+      drawApprovalsTable(); // Refresh the table
+    })
+    .withFailureHandler(err => {
+      hideSavingOverlay();
+      alert('Error: ' + err.message);
+    })
+    .processRequestAction(requestId, action, comments);
+}
+
+function updateRequestLocationDropdowns(level, selectedValue) {
+  let filteredData = fullEmployeeData.filter(e => e.division === selectedValue);
+
+  if (level === 'division') {
+    const groups = [...new Set(filteredData.map(e => e.group).filter(String))].sort();
+    createSearchableDropdown('request-group-dropdown', groups, null, null, (sel) => updateRequestLocationDropdowns('group', sel));
+    // Reset children
+    createSearchableDropdown('request-department-dropdown', [], null, null, (sel) => updateRequestLocationDropdowns('department', sel));
+    createSearchableDropdown('request-section-dropdown', [], null, null, null);
+  } else if (level === 'group') {
+    const depts = [...new Set(filteredData.filter(e => e.group === selectedValue).map(e => e.department).filter(String))].sort();
+    createSearchableDropdown('request-department-dropdown', depts, null, null, (sel) => updateRequestLocationDropdowns('department', sel));
+    // Reset child
+    createSearchableDropdown('request-section-dropdown', [], null, null, null);
+  } else if (level === 'department') {
+    const sects = [...new Set(filteredData.filter(e => e.department === selectedValue).map(e => e.section).filter(String))].sort();
+    createSearchableDropdown('request-section-dropdown', sects, null, null, null);
+  }
 }
 
 </script>
