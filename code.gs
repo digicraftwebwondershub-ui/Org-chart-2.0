@@ -9,7 +9,7 @@
 const WEB_APP_URL = "YOUR_WEB_APP_URL_GOES_HERE"; // PASTE YOUR NEW DEPLOYMENT URL HERE
 const JD_GENERAL_FOLDER_ID = '1Sv7uvDKlzFhEiM1ljCrRGvC51KgIZJfp';
 const JD_INCUMBENT_FOLDER_ID = '1ryXesBBwLs8Y1oEfLYDhDIxPQdeB_Ngx';
-const CHANGE_REQUESTS_FOLDER_ID = '1G57OJTZQ84ODeZLBiRkDwvmU-FVq2CcP';
+const CHANGE_REQUESTS_FOLDER_ID = '1XSW0ktaHt6eRkoZAuHdx8nCo1T2XCSn8';
 
 
 // Defines the sequential order of approval roles
@@ -3271,6 +3271,33 @@ function submitChangeRequest(requestData) {
   }
 }
 
+function getApproverList() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Permissions');
+    if (!sheet || sheet.getLastRow() < 2) {
+      return [];
+    }
+    const data = sheet.getDataRange().getValues();
+    const headers = data.shift();
+    const emailIndex = headers.indexOf('EMAIL');
+    const approverIndex = headers.indexOf('Is Approver');
+
+    if (emailIndex === -1 || approverIndex === -1) {
+      return [];
+    }
+
+    const approvers = data
+      .filter(row => (row[approverIndex] || '').toString().trim().toLowerCase() === 'x')
+      .map(row => ({ email: row[emailIndex] }))
+      .sort((a, b) => a.email.localeCompare(b.email));
+      
+    return approvers;
+  } catch (e) {
+    Logger.log('Error in getApproverList: ' + e.message);
+    throw new Error('Could not retrieve approver list.');
+  }
+}
 // --- END: CHANGE REQUEST FUNCTIONS ---
 
 /**
