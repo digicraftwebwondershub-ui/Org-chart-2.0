@@ -4422,17 +4422,6 @@ function handleRequestTypeChange() {
 
   let fieldsHtml = '';
 
-  const fileUploadHtml = `
-    <div class="md:col-span-2">
-      <label class="block font-medium">Supporting Documents</label>
-      <div class="mt-1">
-        <input type="file" id="support-docs-input" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-      </div>
-      <div id="support-docs-list" class="mt-2 text-sm text-gray-600"></div>
-      <p id="file-limit-warning" class="text-red-500 text-xs mt-1" style="display: none;">You can upload a maximum of 5 files.</p>
-    </div>
-  `;
-
   switch (requestType) {
     case 'Lateral Transfer':
     case 'Promotion':
@@ -4443,7 +4432,6 @@ function handleRequestTypeChange() {
         <div><label class="block font-medium">New Position ID</label><div id="new-position-dropdown" class="searchable-dropdown"></div></div>
         <div><label class="block font-medium">Effective Date</label><input type="date" id="effective-date-request" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded"></textarea></div>
-        ${fileUploadHtml}
       `;
       break;
     case 'Hiring of a new employee (newly created position)':
@@ -4458,7 +4446,6 @@ function handleRequestTypeChange() {
         <div><label class="block font-medium">New Employee Name</label><input type="text" id="new-employee-name" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">New Employee ID</label><input type="text" id="new-employee-id" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded" rows="3"></textarea></div>
-        ${fileUploadHtml}
       `;
       break;
     case 'Hiring of a new employee (replacement for vacancy)':
@@ -4468,16 +4455,10 @@ function handleRequestTypeChange() {
         <div><label class="block font-medium">New Employee ID</label><input type="text" id="new-employee-id" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">Effective Date</label><input type="date" id="effective-date-request" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded"></textarea></div>
-        ${fileUploadHtml}
       `;
       break;
   }
   fieldsContainer.innerHTML = fieldsHtml;
-
-  const fileInput = document.getElementById('support-docs-input');
-  if (fileInput) {
-    fileInput.addEventListener('change', handleFileUpload);
-  }
 
   // Populate dropdowns
   if (requestType.includes('Transfer') || requestType.includes('Promotion')) {
@@ -4514,79 +4495,41 @@ function submitRequest() {
     return;
   }
 
-  const fileInput = document.getElementById('support-docs-input');
-  const files = fileInput.files;
+  const requestData = {
+    RequestType: requestType,
+    Justification: document.getElementById('justification')?.value,
+    EffectiveDate: document.getElementById('effective-date-request')?.value,
+    EmployeeID: document.querySelector('#employee-request-dropdown .searchable-dropdown-input')?.dataset.value,
+    EmployeeName: document.querySelector('#employee-request-dropdown .searchable-dropdown-input')?.value,
+    CurrentPositionID: document.getElementById('current-position-id')?.value,
+    NewPositionID: document.querySelector('#new-position-dropdown .searchable-dropdown-input')?.value,
+    NewJobTitle: document.querySelector('#new-job-title-dropdown .searchable-dropdown-input')?.value,
+    NewLevel: document.querySelector('#new-level-dropdown .searchable-dropdown-input')?.value,
+    Division: document.querySelector('#request-division-dropdown .searchable-dropdown-input')?.value,
+    Group: document.querySelector('#request-group-dropdown .searchable-dropdown-input')?.value,
+    Department: document.querySelector('#request-department-dropdown .searchable-dropdown-input')?.value,
+    Section: document.querySelector('#request-section-dropdown .searchable-dropdown-input')?.value,
+    ReportingToId: document.querySelector('#reporting-to-request-dropdown .searchable-dropdown-input')?.dataset.value,
+    VacantPositionID: document.querySelector('#vacant-position-dropdown .searchable-dropdown-input')?.value,
+    NewEmployeeName: document.getElementById('new-employee-name')?.value,
+    NewEmployeeID: document.getElementById('new-employee-id')?.value,
+  };
 
-  if (files.length === 0) {
-    alert('You must add at least one supporting document.');
-    return;
-  }
-  if (files.length > 5) {
-    alert('You cannot upload more than 5 documents.');
-    return;
-  }
-
-  showSavingOverlay('Processing Files...');
-
-  const filePromises = Array.from(files).map(file => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const fileData = {
-          name: file.name,
-          mimeType: file.type,
-          content: e.target.result.split(',')[1] // Get base64 content
-        };
-        resolve(fileData);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  });
-
-  Promise.all(filePromises).then(fileContents => {
-    const requestData = {
-      RequestType: requestType,
-      Justification: document.getElementById('justification')?.value,
-      EffectiveDate: document.getElementById('effective-date-request')?.value,
-      EmployeeID: document.querySelector('#employee-request-dropdown .searchable-dropdown-input')?.dataset.value,
-      EmployeeName: document.querySelector('#employee-request-dropdown .searchable-dropdown-input')?.value,
-      CurrentPositionID: document.getElementById('current-position-id')?.value,
-      NewPositionID: document.querySelector('#new-position-dropdown .searchable-dropdown-input')?.value,
-      NewJobTitle: document.querySelector('#new-job-title-dropdown .searchable-dropdown-input')?.value,
-      NewLevel: document.querySelector('#new-level-dropdown .searchable-dropdown-input')?.value,
-      Division: document.querySelector('#request-division-dropdown .searchable-dropdown-input')?.value,
-      Group: document.querySelector('#request-group-dropdown .searchable-dropdown-input')?.value,
-      Department: document.querySelector('#request-department-dropdown .searchable-dropdown-input')?.value,
-      Section: document.querySelector('#request-section-dropdown .searchable-dropdown-input')?.value,
-      ReportingToId: document.querySelector('#reporting-to-request-dropdown .searchable-dropdown-input')?.dataset.value,
-      VacantPositionID: document.querySelector('#vacant-position-dropdown .searchable-dropdown-input')?.value,
-      NewEmployeeName: document.getElementById('new-employee-name')?.value,
-      NewEmployeeID: document.getElementById('new-employee-id')?.value,
-      files: fileContents // Attach file contents
-    };
-
-    showSavingOverlay('Submitting Request...');
-
-    google.script.run
-      .withSuccessHandler(() => {
-        hideSavingOverlay();
-        alert('Request submitted successfully!');
-        closeRequestModal();
-        if (document.getElementById('my-requests-view').classList.contains('active')) {
-          drawMyRequestsTable();
-        }
-      })
-      .withFailureHandler((err) => {
-        hideSavingOverlay();
-        alert('Error submitting request: ' + err.message);
-      })
-      .submitChangeRequest(requestData);
-
-  }).catch(error => {
-    hideSavingOverlay();
-    alert('Error reading files: ' + error.message);
-  });
+  showSavingOverlay('Submitting Request...');
+  google.script.run
+    .withSuccessHandler(() => {
+      hideSavingOverlay();
+      alert('Request submitted successfully!');
+      closeRequestModal();
+      if (document.getElementById('my-requests-view').classList.contains('active')) {
+        drawMyRequestsTable();
+      }
+    })
+    .withFailureHandler((err) => {
+      hideSavingOverlay();
+      alert('Error submitting request: ' + err.message);
+    })
+    .submitChangeRequest(requestData);
 }
 
 function drawTeamCompetencyHeatmap(department) {
@@ -4950,9 +4893,9 @@ function drawMyRequestsTable() {
         table.DataTable().destroy();
       }
       table.empty();
-
+      
       const columns = data.myRequests.length > 0 ? Object.keys(data.myRequests[0]).map(h => ({ title: h, data: h })) : [{title: 'No requests found'}];
-
+      
       table.DataTable({
         data: data.myRequests,
         columns: columns,
@@ -4994,7 +4937,7 @@ function drawApprovalsTable() {
                   <button onclick="handleApprovalAction('${data}', 'Rejected')" class="bg-red-500 text-white p-1 rounded text-xs ml-1">Reject</button>`;
         }
       });
-
+      
       table.DataTable({
         data: data.approvals,
         columns: columns,
@@ -5016,7 +4959,7 @@ function handleApprovalAction(requestId, action) {
   if (comments === null) { // User cancelled the prompt
     return;
   }
-
+  
   showSavingOverlay('Processing Action...');
   google.script.run
     .withSuccessHandler(response => {
@@ -5042,7 +4985,7 @@ function updateRequestLocationDropdowns(level, selectedValue) {
         .filter(e => e.division === selectedValue)
         .map(e => e.group).filter(String))].sort();
     createSearchableDropdown('request-group-dropdown', filteredGroups, null, null, (sel) => updateRequestLocationDropdowns('group', sel));
-
+    
     // Reset Department and Section dropdowns
     createSearchableDropdown('request-department-dropdown', [], null, null, (sel) => updateRequestLocationDropdowns('department', sel));
     createSearchableDropdown('request-section-dropdown', [], null, null, null);
@@ -5053,7 +4996,7 @@ function updateRequestLocationDropdowns(level, selectedValue) {
         .filter(e => e.division === selectedDivision && e.group === selectedValue)
         .map(e => e.department).filter(String))].sort();
     createSearchableDropdown('request-department-dropdown', filteredDepartments, null, null, (sel) => updateRequestLocationDropdowns('department', sel));
-
+    
     // Reset Section dropdown
     createSearchableDropdown('request-section-dropdown', [], null, null, null);
 
@@ -5064,35 +5007,6 @@ function updateRequestLocationDropdowns(level, selectedValue) {
         .map(e => e.section).filter(String))].sort();
     createSearchableDropdown('request-section-dropdown', filteredSections, null, null, null);
   }
-}
-
-function handleFileUpload(event) {
-  const files = event.target.files;
-  const list = document.getElementById('support-docs-list');
-  const warning = document.getElementById('file-limit-warning');
-  list.innerHTML = '';
-
-  if (files.length > 5) {
-    warning.style.display = 'block';
-    event.target.value = ''; // Clear the selected files
-    return;
-  }
-
-  warning.style.display = 'none';
-
-  if (files.length > 0) {
-    const fileNames = Array.from(files).map(file => `<li>${escapeHtml(file.name)}</li>`).join('');
-    list.innerHTML = `<strong>Selected files:</strong><ul class="list-disc list-inside mt-1">${fileNames}</ul>`;
-  }
-}
-
-function escapeHtml(unsafe) {
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
 }
 
 </script>

@@ -64,7 +64,7 @@ function processRequestAction(requestId, action, comments) {
     for (let i = 1; i < data.length; i++) {
       if (data[i][requestIdCol] === requestId) {
         const rowData = data[i];
-
+        
         // Update the status and approver details
         sheet.getRange(i + 1, headerMap.get('Status') + 1).setValue(action);
         sheet.getRange(i + 1, headerMap.get('ApproverEmail') + 1).setValue(Session.getActiveUser().getEmail());
@@ -100,7 +100,7 @@ function processRequestAction(requestId, action, comments) {
             if (newPositionId.startsWith('ERROR')) {
               throw new Error('Could not generate new Position ID: ' + newPositionId);
             }
-
+            
             dataToSave = {
               positionid: newPositionId,
               jobtitle: rowData[headerMap.get('NewJobTitle')],
@@ -116,7 +116,7 @@ function processRequestAction(requestId, action, comments) {
             };
             mode = 'add';
           }
-
+          
           // Call the existing save function to apply the change
           if (Object.keys(dataToSave).length > 0) {
             saveEmployeeData(dataToSave, mode);
@@ -124,7 +124,7 @@ function processRequestAction(requestId, action, comments) {
             sheet.getRange(i + 1, headerMap.get('ImplementationTimestamp') + 1).setValue(new Date());
           }
         }
-
+        
         return `Request ${requestId} has been successfully ${action}.`;
       }
     }
@@ -145,22 +145,18 @@ function getChangeRequests() {
     const data = sheet.getDataRange().getValues();
     const headers = data.shift();
     const userEmail = Session.getActiveUser().getEmail();
-    const supportDocIndex = headers.indexOf('SupportingDocuments');
 
     const requests = data.map(row => {
       const request = {};
       headers.forEach((header, i) => {
-        if (i === supportDocIndex && row[i]) {
-          request[header] = `<a href="${row[i]}" target="_blank">View Documents</a>`;
-        } else {
-          request[header] = row[i];
-        }
+        request[header] = row[i];
       });
       return request;
     });
 
     const myRequests = requests.filter(r => r.RequestorEmail === userEmail);
-    const approvals = requests.filter(r => r.Status === 'Pending' && r.ApproverEmail === userEmail);
+    // This will be expanded with logic to determine who can approve
+    const approvals = requests.filter(r => r.Status === 'Pending' && r.ApproverEmail === userEmail); 
 
     return { myRequests, approvals };
   } catch (e) {
@@ -3228,41 +3224,22 @@ function submitChangeRequest(requestData) {
       throw new Error('"Org Chart Requests" sheet not found.');
     }
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-    const requestId = 'REQ-' + new Date().getTime();
-    let folderUrl = '';
-
-    // Handle file uploads
-    if (requestData.files && requestData.files.length > 0) {
-      const parentFolder = DriveApp.getFolderById(CHANGE_REQUESTS_FOLDER_ID);
-      const requestFolder = parentFolder.createFolder(requestId);
-
-      requestData.files.forEach(file => {
-        const decodedContent = Utilities.base64Decode(file.content);
-        const blob = Utilities.newBlob(decodedContent, file.mimeType, file.name);
-        requestFolder.createFile(blob);
-      });
-
-      folderUrl = requestFolder.getUrl();
-    }
-
+    
     const newRow = headers.map(header => {
       switch (header) {
         case 'RequestID':
-          return requestId;
+          return 'REQ-' + new Date().getTime();
         case 'RequestorEmail':
           return Session.getActiveUser().getEmail();
         case 'SubmissionTimestamp':
           return new Date();
         case 'Status':
           return 'Pending';
-        case 'SupportingDocuments':
-          return folderUrl;
         default:
           return requestData[header] || '';
       }
     });
-
+    
     sheet.appendRow(newRow);
     return 'Request submitted successfully.';
   } catch (e) {
