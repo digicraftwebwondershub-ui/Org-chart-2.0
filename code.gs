@@ -63,7 +63,7 @@ function processRequestAction(requestId, action, comments) {
     for (let i = 1; i < data.length; i++) {
       if (data[i][requestIdCol] === requestId) {
         const rowData = data[i];
-
+        
         // Update the status and approver details
         sheet.getRange(i + 1, headerMap.get('Status') + 1).setValue(action);
         sheet.getRange(i + 1, headerMap.get('ApproverEmail') + 1).setValue(Session.getActiveUser().getEmail());
@@ -99,7 +99,7 @@ function processRequestAction(requestId, action, comments) {
             if (newPositionId.startsWith('ERROR')) {
               throw new Error('Could not generate new Position ID: ' + newPositionId);
             }
-
+            
             dataToSave = {
               positionid: newPositionId,
               jobtitle: rowData[headerMap.get('NewJobTitle')],
@@ -115,7 +115,7 @@ function processRequestAction(requestId, action, comments) {
             };
             mode = 'add';
           }
-
+          
           // Call the existing save function to apply the change
           if (Object.keys(dataToSave).length > 0) {
             saveEmployeeData(dataToSave, mode);
@@ -123,7 +123,7 @@ function processRequestAction(requestId, action, comments) {
             sheet.getRange(i + 1, headerMap.get('ImplementationTimestamp') + 1).setValue(new Date());
           }
         }
-
+        
         return `Request ${requestId} has been successfully ${action}.`;
       }
     }
@@ -155,7 +155,7 @@ function getChangeRequests() {
 
     const myRequests = requests.filter(r => r.RequestorEmail === userEmail);
     // This will be expanded with logic to determine who can approve
-    const approvals = requests.filter(r => r.Status === 'Pending' && r.ApproverEmail === userEmail);
+    const approvals = requests.filter(r => r.Status === 'Pending' && r.ApproverEmail === userEmail); 
 
     return { myRequests, approvals };
   } catch (e) {
@@ -3223,7 +3223,7 @@ function submitChangeRequest(requestData) {
       throw new Error('"Org Chart Requests" sheet not found.');
     }
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-
+    
     const newRow = headers.map(header => {
       switch (header) {
         case 'RequestID':
@@ -3238,7 +3238,7 @@ function submitChangeRequest(requestData) {
           return requestData[header] || '';
       }
     });
-
+    
     sheet.appendRow(newRow);
     return 'Request submitted successfully.';
   } catch (e) {
