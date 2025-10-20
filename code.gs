@@ -9,6 +9,7 @@
 const WEB_APP_URL = "YOUR_WEB_APP_URL_GOES_HERE"; // PASTE YOUR NEW DEPLOYMENT URL HERE
 const JD_GENERAL_FOLDER_ID = '1Sv7uvDKlzFhEiM1ljCrRGvC51KgIZJfp';
 const JD_INCUMBENT_FOLDER_ID = '1ryXesBBwLs8Y1oEfLYDhDIxPQdeB_Ngx';
+const CHANGE_REQUESTS_FOLDER_ID = '1G57OJTZQ84ODeZLBiRkDwvmU-FVq2CcP';
 
 
 // Defines the sequential order of approval roles
