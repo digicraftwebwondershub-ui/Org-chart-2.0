@@ -4427,22 +4427,22 @@ function handleRequestTypeChange() {
     case 'Promotion':
     case 'Internal Transfer':
       fieldsHtml = `
-        <div><label class="block font-medium">Employee</label><div id="employee-request-dropdown"></div></div>
+        <div><label class="block font-medium">Employee</label><div id="employee-request-dropdown" class="searchable-dropdown"></div></div>
         <div><label class="block font-medium">Current Position ID</label><input type="text" id="current-position-id" readonly class="mt-1 p-2 w-full border rounded bg-gray-100"></div>
-        <div><label class="block font-medium">New Position ID</label><div id="new-position-dropdown"></div></div>
+        <div><label class="block font-medium">New Position ID</label><div id="new-position-dropdown" class="searchable-dropdown"></div></div>
         <div><label class="block font-medium">Effective Date</label><input type="date" id="effective-date-request" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded"></textarea></div>
       `;
       break;
     case 'Hiring of a new employee (newly created position)':
       fieldsHtml = `
-        <div><label class="block font-medium">Division</label><div id="request-division-dropdown"></div></div>
-        <div><label class="block font-medium">Group</label><div id="request-group-dropdown"></div></div>
-        <div><label class="block font-medium">Department</label><div id="request-department-dropdown"></div></div>
-        <div><label class="block font-medium">Section</label><div id="request-section-dropdown"></div></div>
-        <div><label class="block font-medium">New Position Job Title</label><div id="new-job-title-dropdown"></div></div>
-        <div><label class="block font-medium">New Position Level</label><div id="new-level-dropdown"></div></div>
-        <div><label class="block font-medium">Reporting To</label><div id="reporting-to-request-dropdown"></div></div>
+        <div><label class="block font-medium">Division</label><div id="request-division-dropdown" class="searchable-dropdown"></div></div>
+        <div><label class="block font-medium">Group</label><div id="request-group-dropdown" class="searchable-dropdown"></div></div>
+        <div><label class="block font-medium">Department</label><div id="request-department-dropdown" class="searchable-dropdown"></div></div>
+        <div><label class="block font-medium">Section</label><div id="request-section-dropdown" class="searchable-dropdown"></div></div>
+        <div><label class="block font-medium">New Position Job Title</label><div id="new-job-title-dropdown" class="searchable-dropdown"></div></div>
+        <div><label class="block font-medium">New Position Level</label><div id="new-level-dropdown" class="searchable-dropdown"></div></div>
+        <div><label class="block font-medium">Reporting To</label><div id="reporting-to-request-dropdown" class="searchable-dropdown"></div></div>
         <div><label class="block font-medium">New Employee Name</label><input type="text" id="new-employee-name" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">New Employee ID</label><input type="text" id="new-employee-id" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">Justification</label><textarea id="justification" class="mt-1 p-2 w-full border rounded" rows="3"></textarea></div>
@@ -4450,7 +4450,7 @@ function handleRequestTypeChange() {
       break;
     case 'Hiring of a new employee (replacement for vacancy)':
       fieldsHtml = `
-        <div><label class="block font-medium">Vacant Position ID</label><div id="vacant-position-dropdown"></div></div>
+        <div><label class="block font-medium">Vacant Position ID</label><div id="vacant-position-dropdown" class="searchable-dropdown"></div></div>
         <div><label class="block font-medium">New Employee Name</label><input type="text" id="new-employee-name" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">New Employee ID</label><input type="text" id="new-employee-id" class="mt-1 p-2 w-full border rounded"></div>
         <div><label class="block font-medium">Effective Date</label><input type="date" id="effective-date-request" class="mt-1 p-2 w-full border rounded"></div>
@@ -4893,9 +4893,9 @@ function drawMyRequestsTable() {
         table.DataTable().destroy();
       }
       table.empty();
-
+      
       const columns = data.myRequests.length > 0 ? Object.keys(data.myRequests[0]).map(h => ({ title: h, data: h })) : [{title: 'No requests found'}];
-
+      
       table.DataTable({
         data: data.myRequests,
         columns: columns,
@@ -4937,7 +4937,7 @@ function drawApprovalsTable() {
                   <button onclick="handleApprovalAction('${data}', 'Rejected')" class="bg-red-500 text-white p-1 rounded text-xs ml-1">Reject</button>`;
         }
       });
-
+      
       table.DataTable({
         data: data.approvals,
         columns: columns,
@@ -4959,7 +4959,7 @@ function handleApprovalAction(requestId, action) {
   if (comments === null) { // User cancelled the prompt
     return;
   }
-
+  
   showSavingOverlay('Processing Action...');
   google.script.run
     .withSuccessHandler(response => {
@@ -4975,22 +4975,37 @@ function handleApprovalAction(requestId, action) {
 }
 
 function updateRequestLocationDropdowns(level, selectedValue) {
-  let filteredData = fullEmployeeData.filter(e => e.division === selectedValue);
+  // Get current values from all relevant dropdowns to build the filter chain
+  const selectedDivision = document.querySelector('#request-division-dropdown .searchable-dropdown-input').value;
+  const selectedGroup = document.querySelector('#request-group-dropdown .searchable-dropdown-input').value;
 
   if (level === 'division') {
-    const groups = [...new Set(filteredData.map(e => e.group).filter(String))].sort();
-    createSearchableDropdown('request-group-dropdown', groups, null, null, (sel) => updateRequestLocationDropdowns('group', sel));
-    // Reset children
+    // When a division is selected, filter groups based on it.
+    const filteredGroups = [...new Set(fullEmployeeData
+        .filter(e => e.division === selectedValue)
+        .map(e => e.group).filter(String))].sort();
+    createSearchableDropdown('request-group-dropdown', filteredGroups, null, null, (sel) => updateRequestLocationDropdowns('group', sel));
+    
+    // Reset Department and Section dropdowns
     createSearchableDropdown('request-department-dropdown', [], null, null, (sel) => updateRequestLocationDropdowns('department', sel));
     createSearchableDropdown('request-section-dropdown', [], null, null, null);
+
   } else if (level === 'group') {
-    const depts = [...new Set(filteredData.filter(e => e.group === selectedValue).map(e => e.department).filter(String))].sort();
-    createSearchableDropdown('request-department-dropdown', depts, null, null, (sel) => updateRequestLocationDropdowns('department', sel));
-    // Reset child
+    // When a group is selected, filter departments based on BOTH the selected division AND the new group.
+    const filteredDepartments = [...new Set(fullEmployeeData
+        .filter(e => e.division === selectedDivision && e.group === selectedValue)
+        .map(e => e.department).filter(String))].sort();
+    createSearchableDropdown('request-department-dropdown', filteredDepartments, null, null, (sel) => updateRequestLocationDropdowns('department', sel));
+    
+    // Reset Section dropdown
     createSearchableDropdown('request-section-dropdown', [], null, null, null);
+
   } else if (level === 'department') {
-    const sects = [...new Set(filteredData.filter(e => e.department === selectedValue).map(e => e.section).filter(String))].sort();
-    createSearchableDropdown('request-section-dropdown', sects, null, null, null);
+    // When a department is selected, filter sections based on division, group, AND department.
+    const filteredSections = [...new Set(fullEmployeeData
+        .filter(e => e.division === selectedDivision && e.group === selectedGroup && e.department === selectedValue)
+        .map(e => e.section).filter(String))].sort();
+    createSearchableDropdown('request-section-dropdown', filteredSections, null, null, null);
   }
 }
 
