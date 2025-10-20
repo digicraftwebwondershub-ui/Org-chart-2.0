@@ -145,17 +145,21 @@ function getChangeRequests() {
     const data = sheet.getDataRange().getValues();
     const headers = data.shift();
     const userEmail = Session.getActiveUser().getEmail();
+    const supportDocIndex = headers.indexOf('SupportingDocuments');
 
     const requests = data.map(row => {
       const request = {};
       headers.forEach((header, i) => {
-        request[header] = row[i];
+        if (i === supportDocIndex && row[i]) {
+          request[header] = `<a href="${row[i]}" target="_blank">View Documents</a>`;
+        } else {
+          request[header] = row[i];
+        }
       });
       return request;
     });
 
     const myRequests = requests.filter(r => r.RequestorEmail === userEmail);
-    // This will be expanded with logic to determine who can approve
     const approvals = requests.filter(r => r.Status === 'Pending' && r.ApproverEmail === userEmail); 
 
     return { myRequests, approvals };
@@ -3225,16 +3229,35 @@ function submitChangeRequest(requestData) {
     }
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     
+    const requestId = 'REQ-' + new Date().getTime();
+    let folderUrl = '';
+
+    // Handle file uploads
+    if (requestData.files && requestData.files.length > 0) {
+      const parentFolder = DriveApp.getFolderById(CHANGE_REQUESTS_FOLDER_ID);
+      const requestFolder = parentFolder.createFolder(requestId);
+      
+      requestData.files.forEach(file => {
+        const decodedContent = Utilities.base64Decode(file.content);
+        const blob = Utilities.newBlob(decodedContent, file.mimeType, file.name);
+        requestFolder.createFile(blob);
+      });
+      
+      folderUrl = requestFolder.getUrl();
+    }
+
     const newRow = headers.map(header => {
       switch (header) {
         case 'RequestID':
-          return 'REQ-' + new Date().getTime();
+          return requestId;
         case 'RequestorEmail':
           return Session.getActiveUser().getEmail();
         case 'SubmissionTimestamp':
           return new Date();
         case 'Status':
           return 'Pending';
+        case 'SupportingDocuments':
+          return folderUrl;
         default:
           return requestData[header] || '';
       }
