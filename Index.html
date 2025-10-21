@@ -387,8 +387,8 @@
       border-bottom: 1px solid #e2e8f0;
     }
     table.dataTable thead {
-      background-color: #f8f9fa; /* Light grey header background */
-      color: #333; /* Darker text for header */
+      background-color: #1e40af; /* Darker Blue header background for consistency */
+      color: #ffffff; /* White text for header */
       font-weight: bold;
     }
     table.dataTable tbody tr {
@@ -1207,7 +1207,7 @@
 </div>
     </div>
     <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-        <table id="masterlist-table" class="display responsive nowrap" style="width:100%">
+        <table id="masterlist-table" class="display" style="width:100%">
             </table>
     </div>
   </div>
@@ -1355,7 +1355,7 @@
 <div id="my-requests-view" class="tab-content">
   <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
     <h2 class="text-2xl font-bold text-slate-800 mb-4">My Change Requests</h2>
-    <table id="my-requests-table" class="display responsive nowrap" style="width:100%">
+    <table id="my-requests-table" class="display" style="width:100%">
     </table>
   </div>
 </div>
@@ -1364,7 +1364,7 @@
 <div id="approvals-view" class="tab-content">
   <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
     <h2 class="text-2xl font-bold text-slate-800 mb-4">Change Request Approvals</h2>
-    <table id="approvals-table" class="display responsive nowrap" style="width:100%">
+    <table id="approvals-table" class="display" style="width:100%">
     </table>
   </div>
 </div>
@@ -4090,9 +4090,10 @@ function initializeMasterlist() {
                 table.empty();
 
                 masterlistDataTable = table.DataTable({
-                    responsive: true,
                     data: data.rows,
                     columns: data.headers.map(h => ({ title: h })),
+                    responsive: false,
+                    scrollX: true,
                     dom: 'Bfrtip',
                     buttons: [
                         'colvis',
@@ -4112,7 +4113,6 @@ function initializeMasterlist() {
                             }
                         }
                     ],
-                    scrollX: true,
                     language: {
                         emptyTable: "No data available in table",
                         zeroRecords: "No matching records found"
@@ -5095,7 +5095,8 @@ function drawMyRequestsTable() {
           table.DataTable({
             data: data.myRequests, // Use the received data
             columns: columns,      // Use the dynamically generated columns
-            responsive: true,
+            responsive: false,
+            scrollX: true,
             dom: 'Bfrtip',
             buttons: [
                 'colvis', // Standard column visibility button
@@ -5106,7 +5107,6 @@ function drawMyRequestsTable() {
                     orientation: 'landscape'
                  }
             ],
-            scrollX: true, // Enable horizontal scrolling
             // Add explicit message for empty table *after* initialization attempt
              language: {
                  emptyTable: "No data available in table",
@@ -5201,7 +5201,8 @@ function drawApprovalsTable() {
       table.DataTable({
         data: data.approvals,
         columns: columns,
-        responsive: true,
+        responsive: false,
+        scrollX: true,
         dom: 'Bfrtip',
         buttons: [
             'colvis',
@@ -5212,7 +5213,6 @@ function drawApprovalsTable() {
                 orientation: 'landscape'
              }
         ],
-        scrollX: true,
         language: {
             emptyTable: "No data available in table",
             zeroRecords: "No matching records found"
