@@ -1547,41 +1547,53 @@ function navigateToView(viewType, defaultTabId) {
   document.getElementById('homepage-view').style.display = 'none';
   document.getElementById('tab-area').style.display = 'block';
 
-  // Control visibility of the main title and tab navigation bar
   const mainTitle = document.getElementById('main-title');
   const tabNav = document.getElementById('tab-navigation');
   const headerControls = document.getElementById('header-controls');
+  const myRequestsTab = document.getElementById('tab-my-requests');
+  const approvalsTab = document.getElementById('tab-approvals');
 
-  // Show controls ONLY for org chart view
   headerControls.style.display = (viewType === 'org') ? 'flex' : 'none';
 
-  // This is the key change: competency view should behave like org and predictive views.
-    if (viewType === 'org' || viewType === 'predictive' || viewType === 'competency') {
+  if (viewType === 'org') {
+    // For org chart view, specifically manage tabs based on permissions
+    mainTitle.style.display = 'none';
+    tabNav.style.display = 'flex'; // Show the nav bar for tabs
+    document.getElementById('tab-org-chart').style.display = 'flex';
+
+    // Show/hide permission-based tabs
+    myRequestsTab.style.display = userCanEdit ? 'none' : 'flex';
+    approvalsTab.style.display = userCanApprove ? 'flex' : 'none';
+
+    // Hide all other tab groups
+    document.querySelectorAll('.analytics-view-tab, .predictive-view-tab, .competency-view-tab').forEach(t => t.style.display = 'none');
+
+    // Default to approvals tab if user can approve and is landing on the org view
+    if (userCanApprove) {
+      defaultTabId = 'approvals';
+    }
+
+  } else {
+    // Logic for other views remains the same
+    if (viewType === 'predictive' || viewType === 'competency') {
       mainTitle.style.display = 'none';
       tabNav.style.display = 'none';
-    } else if (viewType === 'analytics') {
+    } else { // This covers 'analytics' and any other future views
       mainTitle.style.display = 'none';
       tabNav.style.display = 'flex';
-    } else {
-      // Default for any other views
-      mainTitle.style.display = 'block';
-      tabNav.style.display = 'flex';
+    }
+
+    const viewClassMap = {
+      'analytics': 'analytics-view-tab',
+      'predictive': 'predictive-view-tab',
+      'competency': 'competency-view-tab'
+    };
+    const targetClass = viewClassMap[viewType];
+
+    document.querySelectorAll('#tab-navigation .tab').forEach(tab => {
+        tab.style.display = tab.classList.contains(targetClass) ? 'flex' : 'none';
+    });
   }
-
-  const allTabs = document.querySelectorAll('#tab-area .tab');
-  const viewClassMap = {
-    'org': 'org-view-tab',
-    'analytics': 'analytics-view-tab',
-    'predictive': 'predictive-view-tab',
-    'reports': 'reports-view-tab',
-    'competency': 'competency-view-tab' // Add this line
-  };
-
-  const targetClass = viewClassMap[viewType];
-
-  allTabs.forEach(tab => {
-    tab.style.display = tab.classList.contains(targetClass) ? 'flex' : 'none';
-  });
 
   switchTab(defaultTabId);
 }

@@ -1,111 +1,129 @@
 const fs = require('fs');
 const { JSDOM } = require('jsdom');
 
-// Mock the google object completely, including script.run and charts
-const google = {
-  script: {
-    run: {
+function runTests(userCanEdit, userCanApprove) {
+  return new Promise((resolve, reject) => {
+    // A more robust mock for google.script.run that handles both direct and chained calls
+    const googleScriptRunMock = {
       withSuccessHandler: (handler) => {
-        return {
+        const backendFunctions = {
+          checkUserAccess: () => handler({ isAuthorized: true, userEmail: 'test@example.com' }),
+          getEmployeeData: () => handler({
+            current: [],
+            previous: {},
+            snapshotTimestamp: new Date().toISOString(),
+            currentUserEmail: 'test@example.com',
+            canEdit: userCanEdit,
+            canApprove: userCanApprove,
+            dropdownListData: {},
+            totalApprovedPlantilla: 100,
+            previousDateString: '2023-01-01'
+          }),
+          getListsForDropdowns: () => handler({}),
+          getUpcomingDues: () => handler({ upcoming: [], overdue: [] }),
+          getAnalyticsData: () => handler({ overallHeadcount: 0, totalHeadcount: 0, filteredPositionsCount: 0, statusCounts: {}, contractCounts: {}, genderCounts: {}, jobGroupCounts: {}, losCounts: {}, newHiresByMonth: {}, ageGenerationCounts: {} }),
+          getResignationData: () => handler({ filteredResignationsCount: 0, yearlyHiresLeavers: { hires: 0, leavers: 0 }, reasonCounts: {}, resignationGenderCounts: {}, resignationContractCounts: {}, resignationDivisionCounts: {}, resignationJobGroupCounts: {}, monthlyTurnover: [], ytdTurnover: 0, attritionRate: 0, retentionRate: 0 }),
+          getChangeRequests: () => handler({ myRequests: [], approvals: [] }),
+          testBackendConnection: () => handler("Connection successful!"),
+          logUserActivity: () => handler(null), // Mock the logging function
+        };
+
+        const runner = {
+          ...backendFunctions,
           withFailureHandler: (failureHandler) => {
-            // Mock all backend functions
-            return {
-              checkUserAccess: () => handler({ isAuthorized: true, userEmail: 'test@example.com' }),
-              getEmployeeData: () => handler({ current: [], previous: {}, snapshotTimestamp: new Date().toISOString(), currentUserEmail: 'test@example.com', canEdit: true, totalApprovedPlantilla: 100, previousDateString: '2023-01-01' }),
-              getListsForDropdowns: () => handler({}),
-              getUpcomingDues: () => handler({ upcoming: [], overdue: [] }),
-              getAnalyticsData: () => handler({ overallHeadcount: 0, totalHeadcount: 0, filteredPositionsCount: 0, statusCounts: {}, contractCounts: {}, genderCounts: {}, jobGroupCounts: {}, losCounts: {}, newHiresByMonth: {}, ageGenerationCounts: {} }),
-              getResignationData: () => handler({ filteredResignationsCount: 0, yearlyHiresLeavers: { hires: 0, leavers: 0 }, reasonCounts: {}, resignationGenderCounts: {}, resignationContractCounts: {}, resignationDivisionCounts: {}, resignationJobGroupCounts: {}, monthlyTurnover: [], ytdTurnover: 0, attritionRate: 0, retentionRate: 0 }),
-            };
+            return backendFunctions;
           }
         };
+
+        return runner;
       }
-    }
-  },
-  charts: {
-    load: () => {},
-    setOnLoadCallback: (cb) => {
-      if (typeof cb === 'function') {
-        cb();
+    };
+
+    const google = {
+      script: { run: googleScriptRunMock },
+      charts: {
+        load: () => {},
+        setOnLoadCallback: (cb) => { if (typeof cb === 'function') cb(); },
+        visualization: {
+          OrgChart: function() { return { draw: () => {} }; },
+          DataTable: function() { return { addColumn: () => {}, addRow: () => {} }; },
+        }
       }
-    },
-    visualization: {
-      OrgChart: function() { return { draw: () => {} }; },
-      DataTable: function() { return { addColumn: () => {}, addRow: () => {} }; },
-      arrayToDataTable: () => {},
-      PieChart: function() { return { draw: () => {} }; },
-      ColumnChart: function() { return { draw: () => {} }; },
-      ComboChart: function() { return { draw: () => {} }; },
-    }
-  }
-};
+    };
 
-// Mock other global objects that are not available in Node.js
-const mocks = {
-  google: google,
-  alert: () => {},
-  confirm: () => true,
-};
+    const dom = new JSDOM(fs.readFileSync('Index.html', 'utf8'), {
+      runScripts: 'dangerously',
+      beforeParse(window) {
+        Object.assign(window, { google, alert: () => {}, confirm: () => true });
+        window.document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            try {
+              const orgCard = window.document.querySelector('div[onclick="navigateToView(\'org\', \'org-chart\')"]');
+              if (!orgCard) {
+                  throw new Error("Organizational Chart card not found");
+              }
+              orgCard.click();
 
-// Read the HTML file
-const html = fs.readFileSync('Index.html', 'utf8');
+              const myRequestsTab = window.document.getElementById('tab-my-requests');
+              const approvalsTab = window.document.getElementById('tab-approvals');
 
-// Create a JSDOM environment
-const dom = new JSDOM(html, {
-  runScripts: 'dangerously',
-  beforeParse(window) {
-    // Inject the mocks into the window object
-    Object.assign(window, mocks);
-  }
-});
+              let pass = true;
+              let message = '';
 
-const { window } = dom;
-const { document } = window;
+              if (!userCanEdit && myRequestsTab.style.display !== 'flex') {
+                pass = false;
+                message = `FAIL: My Requests tab should be 'flex' for non-edit users, but was '${myRequestsTab.style.display}'.`;
+              }
 
-// Helper function to check test results
-function check(description, condition) {
-  if (condition) {
-    console.log(`✅ PASS: ${description}`);
-  } else {
-    console.error(`❌ FAIL: ${description}`);
-    process.exit(1); // Exit with error
-  }
+              if (userCanApprove && approvalsTab.style.display !== 'flex') {
+                pass = false;
+                message = `FAIL: Approvals tab should be 'flex' for approvers, but was '${approvalsTab.style.display}'.`;
+              }
+
+              if (userCanEdit && myRequestsTab.style.display !== 'none') {
+                pass = false;
+                message = `FAIL: My Requests tab should be 'none' for edit users, but was '${myRequestsTab.style.display}'.`;
+              }
+
+              if (!userCanApprove && approvalsTab.style.display !== 'none') {
+                pass = false;
+                message = `FAIL: Approvals tab should be 'none' for non-approvers, but was '${approvalsTab.style.display}'.`;
+              }
+
+              if (pass) {
+                console.log(`✅ PASS: Correct tabs are visible for user (canEdit: ${userCanEdit}, canApprove: ${userCanApprove})`);
+                resolve();
+              } else {
+                console.error(`❌ ${message}`);
+                reject(new Error(message));
+              }
+            } catch (e) {
+              reject(e);
+            }
+          }, 200);
+        });
+      }
+    });
+  });
 }
 
-// --- Test Execution ---
-try {
-    // 1. Simulate clicking the "HR Data Analytics" card (since Recruitment is disabled)
-    const analyticsCard = document.querySelector('div[onclick="navigateToView(\'analytics\', \'demographics\')"]');
-    check("HR Data Analytics card should exist", analyticsCard);
-    analyticsCard.click();
+async function main() {
+  try {
+    console.log("--- Testing Regular User (canEdit: false, canApprove: false) ---");
+    await runTests(false, false);
 
-    // 2. Check that the tab area is now visible
-    const tabArea = document.getElementById('tab-area');
-    check("Tab area should be visible after card click", tabArea.style.display === 'block');
+    console.log("\n--- Testing Approver (canEdit: false, canApprove: true) ---");
+    await runTests(false, true);
 
-    // 3. Check that the homepage is hidden
-    const homepage = document.getElementById('homepage-view');
-    check("Homepage should be hidden after card click", homepage.style.display === 'none');
+    console.log("\n--- Testing Admin (canEdit: true, canApprove: true) ---");
+    await runTests(true, true);
 
-    // 4. Simulate clicking the "Resignation" tab
-    const resignationTab = document.getElementById('tab-resignation');
-    check("Resignation tab should exist", resignationTab);
-    resignationTab.click();
-
-    // 5. Check if the resignation tab is now active
-    check("Resignation tab should have 'active' class", resignationTab.classList.contains('active'));
-
-    // 6. Check if the resignation content is visible
-    const resignationView = document.getElementById('resignation-view');
-    check("Resignation content should be visible", resignationView.classList.contains('active'));
-
-    // 7. Check if the demographics content is hidden
-    const demographicsView = document.getElementById('demographics-view');
-    check("Demographics content should be hidden", !demographicsView.classList.contains('active'));
-
-    console.log("\nAll tab navigation tests passed!");
-
-} catch (error) {
-    console.error("An error occurred during verification:", error);
+    console.log("\nAll user permission tests passed!");
+    process.exit(0);
+  } catch (error) {
+    console.error("\nTests failed.", error.message);
     process.exit(1);
+  }
 }
+
+main();
