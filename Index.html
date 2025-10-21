@@ -1557,7 +1557,7 @@ function navigateToView(viewType, defaultTabId) {
 
   if (viewType === 'org') {
     // For org chart view, specifically manage tabs based on permissions
-    mainTitle.style.display = 'none';
+    mainTitle.style.display = 'none'; 
     tabNav.style.display = 'flex'; // Show the nav bar for tabs
     document.getElementById('tab-org-chart').style.display = 'flex';
 
@@ -1582,14 +1582,14 @@ function navigateToView(viewType, defaultTabId) {
       mainTitle.style.display = 'none';
       tabNav.style.display = 'flex';
     }
-
+    
     const viewClassMap = {
       'analytics': 'analytics-view-tab',
       'predictive': 'predictive-view-tab',
       'competency': 'competency-view-tab'
     };
     const targetClass = viewClassMap[viewType];
-
+    
     document.querySelectorAll('#tab-navigation .tab').forEach(tab => {
         tab.style.display = tab.classList.contains(targetClass) ? 'flex' : 'none';
     });
@@ -1602,7 +1602,7 @@ function navigateToView(viewType, defaultTabId) {
 
 function switchTab(tabId) {
   try {
-    google.script.run.logUserActivity('Viewed Tab: ' + tabId);
+    // google.script.run.logUserActivity('Viewed Tab: ' + tabId); //
   } catch (e) {
     console.error("Failed to log tab activity:", e);
   }
@@ -4986,26 +4986,94 @@ function drawMyRequestsTable() {
   showSavingOverlay('Loading My Requests...');
   google.script.run
     .withSuccessHandler(data => {
+      // *** ADDED CONSOLE LOG ***
+      console.log("Data received for My Requests:", JSON.stringify(data, null, 2)); // Log the raw data received
+
       const table = $('#my-requests-table');
       if ($.fn.DataTable.isDataTable(table)) {
         table.DataTable().destroy();
       }
-      table.empty();
-      
-      const columns = data.myRequests.length > 0 ? Object.keys(data.myRequests[0]).map(h => ({ title: h, data: h })) : [{title: 'No requests found'}];
-      
-      table.DataTable({
-        data: data.myRequests,
-        columns: columns,
-        responsive: true,
-        dom: 'Bfrtip',
-        buttons: ['pdfHtml5']
+      table.empty(); // Clear previous table structure
+
+      // Check if myRequests exists and has data *after* logging
+      if (!data || !data.myRequests || data.myRequests.length === 0) {
+        console.log("No requests found in data object or data.myRequests is empty."); // Log if no data
+        table.html('<thead><tr><th>Info</th></tr></thead><tbody><tr><td>No requests found.</td></tr></tbody>');
+        hideSavingOverlay();
+        return;
+      }
+
+      console.log(`Found ${data.myRequests.length} request(s) to display.`); // Log the count being processed
+
+      // --- Simplified Column Definition ---
+      // Get headers directly from the first row of the actual data received
+      const headers = Object.keys(data.myRequests[0]);
+      const columns = headers.map(header => {
+          let colDef = { title: header, data: header };
+
+          // Basic Date/Timestamp formatting (more robust handling can be added back if needed)
+          if (header.includes('Timestamp') || header === 'EffectiveDate') {
+              colDef.render = function(d, type, row) {
+                  if (type === 'display' && d) {
+                      try {
+                          return new Date(d).toLocaleString();
+                      } catch (e) { return d; } // Return original if invalid
+                  }
+                  return d;
+              };
+          }
+          // Basic Link handling
+          else if (header === 'SupportingDocuments') {
+              colDef.render = function(d, type, row) {
+                  if (type === 'display' && d && typeof d === 'string' && d.startsWith('<a')) {
+                      // Ensure target blank, basic version
+                      return d.includes('target="_blank"') ? d : d.replace('<a href', '<a target="_blank" href');
+                  }
+                  return d;
+              }
+          }
+          // Default text rendering for safety
+          else {
+              colDef.render = $.fn.dataTable.render.text();
+          }
+          return colDef;
       });
+      // --- End Simplified Column Definition ---
+
+
+      try { // Add try...catch around DataTable initialization
+          table.DataTable({
+            data: data.myRequests, // Use the received data
+            columns: columns,      // Use the dynamically generated columns
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                 {
+                    extend: 'pdfHtml5',
+                    text: 'Export PDF',
+                    title: 'My Change Requests',
+                    orientation: 'landscape'
+                 }
+            ],
+            // Add explicit message for empty table *after* initialization attempt
+             language: {
+                 emptyTable: "No matching records found",
+                 zeroRecords: "No requests found matching the criteria"
+             }
+          });
+          console.log("DataTable initialized successfully."); // Log success
+      } catch (e) {
+         console.error("Error initializing DataTable:", e); // Log any DataTable errors
+         table.html(`<thead><tr><th>Error</th></tr></thead><tbody><tr><td>Error displaying requests: ${e.message}. See console (F12) for details.</td></tr></tbody>`);
+      }
+
+
       hideSavingOverlay();
     })
     .withFailureHandler(err => {
       hideSavingOverlay();
-      alert('Error loading requests: ' + err.message);
+      $('#my-requests-table').html(`<thead><tr><th>Error</th></tr></thead><tbody><tr><td>Error loading requests: ${err.message}. Check browser console (F12) and Apps Script logs.</td></tr></tbody>`);
+      console.error("Error loading My Requests:", err); // Log backend error
     })
     .getChangeRequests();
 }
@@ -5020,34 +5088,121 @@ function drawApprovalsTable() {
       }
       table.empty();
 
-      if (data.approvals.length === 0) {
+      if (!data || !data.approvals || data.approvals.length === 0) {
         table.html('<thead><tr><th>Info</th></tr></thead><tbody><tr><td>No pending approvals.</td></tr></tbody>');
         hideSavingOverlay();
         return;
       }
 
-      const columns = Object.keys(data.approvals[0]).map(h => ({ title: h, data: h }));
+      // **Explicitly define columns** (same list as myRequests for consistency)
+      const expectedHeaders = [
+          "RequestID", "RequestorEmail", "SubmissionTimestamp", "Status", "RequestType",
+          "ApproverEmail", "ApprovalTimestamp", "ApproverComments",
+          "EmployeeID", "EmployeeName", "NewPositionID", "EffectiveDate",
+          "VacantPositionID", "NewEmployeeID", "NewEmployeeName",
+          "NewJobTitle", "NewLevel", "Division", "Group", "Department", "Section", "ReportingToId",
+          "SupportingDocuments", "Justification",
+          "ImplementerEmail", "ImplementationTimestamp"
+      ];
+
+      const actualHeaders = Object.keys(data.approvals[0]);
+      const columns = expectedHeaders
+        .filter(header => actualHeaders.includes(header))
+        .map(header => {
+            let colDef = { title: header, data: header };
+            if (header.includes('Timestamp') || header === 'EffectiveDate') {
+                colDef.render = function(data, type, row) {
+                    if (type === 'display' && data) {
+                         try {
+                            return new Date(data).toLocaleString();
+                        } catch (e) {
+                            return data;
+                        }
+                    }
+                    return data;
+                };
+            }
+            if (header === 'SupportingDocuments') {
+                colDef.render = function(data, type, row) {
+                   if (type === 'display' && data && typeof data === 'string' && data.startsWith('<a')) {
+                       return data.replace('<a href', '<a target="_blank" href');
+                   }
+                   return data;
+                }
+            }
+            return colDef;
+        });
+
+      // Add the Actions column
       columns.push({
         title: 'Actions',
-        data: 'RequestID',
-        render: function(data) {
-          return `<button onclick="handleApprovalAction('${data}', 'Approved')" class="bg-green-500 text-white p-1 rounded text-xs">Approve</button>
-                  <button onclick="handleApprovalAction('${data}', 'Rejected')" class="bg-red-500 text-white p-1 rounded text-xs ml-1">Reject</button>`;
+        data: 'RequestID', // Use RequestID to identify the row
+        orderable: false,   // Actions column shouldn't be sortable
+        render: function(data, type, row) {
+          // Escape RequestID just in case, though unlikely needed here
+          const escapedRequestId = String(data).replace(/'/g, "\\'");
+          return `<button onclick="handleApprovalAction('${escapedRequestId}', 'Approved')" class="bg-green-500 text-white p-1 rounded text-xs mr-1 mb-1 sm:mb-0">Approve</button>
+                  <button onclick="handleApprovalAction('${escapedRequestId}', 'Rejected')" class="bg-red-500 text-white p-1 rounded text-xs">Reject</button>`;
         }
       });
-      
+
       table.DataTable({
         data: data.approvals,
         columns: columns,
         responsive: true,
         dom: 'Bfrtip',
-        buttons: ['pdfHtml5']
+        buttons: [
+             {
+                extend: 'pdfHtml5',
+                text: 'Export PDF',
+                title: 'Pending Approvals',
+                orientation: 'landscape'
+             }
+        ],
+         columnDefs: [
+           { targets: '_all', render: $.fn.dataTable.render.text() }
+         ]
       });
+
+        // Re-apply specific renderers after initialization
+        const dtInstance = table.DataTable();
+        dtInstance.columns().every(function(index) {
+             const header = $(this.header()).html();
+             if (header.includes('Timestamp') || header === 'EffectiveDate') {
+                 dtInstance.column(index).nodes().to$().each(function() {
+                     const cellData = dtInstance.cell(this).data();
+                     if (cellData) {
+                         try { $(this).html(new Date(cellData).toLocaleString()); }
+                         catch (e) { /* keep original */ }
+                     }
+                 });
+             } else if (header === 'SupportingDocuments') {
+                 dtInstance.column(index).nodes().to$().each(function() {
+                     const cellData = dtInstance.cell(this).data();
+                     if (cellData && typeof cellData === 'string' && cellData.startsWith('<a')) {
+                         const linkElement = $(cellData);
+                         if (linkElement.attr('target') !== '_blank') {
+                             linkElement.attr('target', '_blank');
+                             $(this).html(linkElement[0].outerHTML);
+                         } else {
+                            $(this).html(cellData);
+                         }
+                     } else {
+                         $(this).text(cellData || '');
+                     }
+                 });
+             } else if (header === 'Actions') {
+                 // The render function handles actions, no post-init needed here
+             }
+         });
+
+
       hideSavingOverlay();
     })
     .withFailureHandler(err => {
       hideSavingOverlay();
-      alert('Error loading approvals: ' + err.message);
+      $('#approvals-table').html(`<thead><tr><th>Error</th></tr></thead><tbody><tr><td>Error loading approvals: ${err.message}. Check browser console (F12) and Apps Script logs.</td></tr></tbody>`);
+      console.error("Error loading Approvals:", err);
     })
     .getChangeRequests();
 }
