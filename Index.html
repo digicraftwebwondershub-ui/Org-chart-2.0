@@ -378,6 +378,12 @@
       transform: translateY(-4px);
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
+    .dt-controls-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1em;
+    }
     /* --- NEW TABLE STYLES --- */
     .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_paginate {
       margin-bottom: 1.5em;
@@ -385,6 +391,7 @@
     table.dataTable thead th, table.dataTable thead td {
       padding: 12px 18px;
       border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
     }
     table.dataTable thead {
       background-color: #1e40af; /* Darker Blue header background for consistency */
