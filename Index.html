@@ -378,7 +378,55 @@
       transform: translateY(-4px);
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
-
+    /* --- NEW TABLE STYLES --- */
+    .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_paginate {
+      margin-bottom: 1.5em;
+    }
+    table.dataTable thead th, table.dataTable thead td {
+      padding: 12px 18px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    table.dataTable thead {
+      background-color: #f8f9fa; /* Light grey header background */
+      color: #333; /* Darker text for header */
+      font-weight: bold;
+    }
+    table.dataTable tbody tr {
+      background-color: #ffffff;
+      transition: background-color 0.2s ease-in-out;
+    }
+    table.dataTable tbody tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    table.dataTable tbody tr:hover {
+      background-color: #eff6ff; /* Lighter blue on hover */
+    }
+    table.dataTable tbody td {
+      padding: 12px 18px;
+      vertical-align: middle;
+    }
+    table.dataTable.no-footer {
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .dataTables_scrollBody {
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .dataTables_wrapper .dt-buttons button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 0.5em 1em;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .dataTables_wrapper .dt-buttons button:hover {
+      background-color: #4338ca;
+    }
+    .dt-button-collection .dt-button {
+        color: black !important;
+    }
+    /* --- END NEW TABLE STYLES --- */
   </style>
 </head>
 <body>
@@ -4047,10 +4095,7 @@ function initializeMasterlist() {
                     columns: data.headers.map(h => ({ title: h })),
                     dom: 'Bfrtip',
                     buttons: [
-                        {
-                            extend: 'colvis',
-                            text: 'Show/Hide Columns'
-                        },
+                        'colvis',
                         {
                             extend: 'pdfHtml5',
                             text: 'Export as PDF',
@@ -4066,7 +4111,12 @@ function initializeMasterlist() {
                                 exportFilteredSheet();
                             }
                         }
-                    ]
+                    ],
+                    scrollX: true,
+                    language: {
+                        emptyTable: "No data available in table",
+                        zeroRecords: "No matching records found"
+                    }
                 });
                 
                 masterlistDataLoaded = true;
@@ -5048,6 +5098,7 @@ function drawMyRequestsTable() {
             responsive: true,
             dom: 'Bfrtip',
             buttons: [
+                'colvis', // Standard column visibility button
                  {
                     extend: 'pdfHtml5',
                     text: 'Export PDF',
@@ -5055,10 +5106,11 @@ function drawMyRequestsTable() {
                     orientation: 'landscape'
                  }
             ],
+            scrollX: true, // Enable horizontal scrolling
             // Add explicit message for empty table *after* initialization attempt
              language: {
-                 emptyTable: "No matching records found",
-                 zeroRecords: "No requests found matching the criteria"
+                 emptyTable: "No data available in table",
+                 zeroRecords: "No matching records found"
              }
           });
           console.log("DataTable initialized successfully."); // Log success
@@ -5152,6 +5204,7 @@ function drawApprovalsTable() {
         responsive: true,
         dom: 'Bfrtip',
         buttons: [
+            'colvis',
              {
                 extend: 'pdfHtml5',
                 text: 'Export PDF',
@@ -5159,6 +5212,11 @@ function drawApprovalsTable() {
                 orientation: 'landscape'
              }
         ],
+        scrollX: true,
+        language: {
+            emptyTable: "No data available in table",
+            zeroRecords: "No matching records found"
+        },
          columnDefs: [
            { targets: '_all', render: $.fn.dataTable.render.text() }
          ]
