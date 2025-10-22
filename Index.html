@@ -378,15 +378,17 @@
       transform: translateY(-4px);
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
-    .dt-controls-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1em;
+    .dashboard-card.loading {
+      pointer-events: none;
+      opacity: 0.6;
     }
     /* --- NEW TABLE STYLES --- */
     .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_paginate {
       margin-bottom: 1.5em;
+    }
+    .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dt-buttons {
+      display: inline-flex;
+      align-items: center;
     }
     table.dataTable thead th, table.dataTable thead td {
       padding: 12px 18px;
@@ -624,7 +626,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
 
         <!-- Organizational Chart Card -->
-        <div onclick="navigateToView('org', 'org-chart')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+        <div onclick="navigateToView('org', 'org-chart')" class="dashboard-card loading bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
           <svg class="h-24 w-24 mb-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
           </svg>
@@ -633,7 +635,7 @@
         </div>
 
         <!-- HR Data Analytics Card -->
-        <div onclick="navigateToView('analytics', 'demographics')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+        <div onclick="navigateToView('analytics', 'demographics')" class="dashboard-card loading bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
           <svg class="h-24 w-24 mb-4 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
           </svg>
@@ -660,7 +662,7 @@
         </div>
 
         <!-- Employee Competency Card -->
-        <div onclick="navigateToView('competency', 'competency')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+        <div onclick="navigateToView('competency', 'competency')" class="dashboard-card loading bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
           <svg class="h-24 w-24 mb-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
           </svg>
@@ -687,7 +689,7 @@
         </div>
 
         <!-- Predictive Insight Card -->
-        <div onclick="navigateToView('predictive', 'predictive')" class="dashboard-card bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
+        <div onclick="navigateToView('predictive', 'predictive')" class="dashboard-card loading bg-white rounded-lg shadow p-6 flex flex-col items-center text-center w-80 cursor-pointer hover:shadow-xl transition-shadow">
           <svg class="h-24 w-24 mb-4 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519 2.25 2.25 0 012.185 2.185.683.683 0 01-.546.636l-3.876 1.162A2.25 2.25 0 0016.5 21h-5.25a2.25 2.25 0 01-2.25-2.25V18m-3.375-3.375L1.5 15m0 0l3.375 3.375M1.5 15h16.5" />
           </svg>
@@ -717,8 +719,8 @@
   <div class="border-b border-gray-200 mb-6">
   <nav id="tab-navigation" class="flex -mb-px" aria-label="Tabs">
     <div onclick="switchTab('org-chart')" id="tab-org-chart" class="tab active org-view-tab">Org Chart</div>
-    <div onclick="switchTab('my-requests')" id="tab-my-requests" class="tab reports-view-tab" style="display: none;">My Requests</div>
-    <div onclick="switchTab('approvals')" id="tab-approvals" class="tab reports-view-tab" style="display: none;">Approvals</div>
+    <div onclick="switchTab('my-requests')" id="tab-my-requests" class="tab org-view-tab" style="display: none;">My Requests</div>
+    <div onclick="switchTab('approvals')" id="tab-approvals" class="tab org-view-tab" style="display: none;">Approvals</div>
     <div onclick="switchTab('demographics')" id="tab-demographics" class="tab analytics-view-tab">Demographics</div>
     <div onclick="switchTab('resignation')" id="tab-resignation" class="tab analytics-view-tab">Resignation</div>
     <div onclick="switchTab('employee-movement')" id="tab-employee-movement" class="tab analytics-view-tab">Employee Movement</div>
@@ -1214,6 +1216,10 @@
 </div>
     </div>
     <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-bold text-slate-800">Employee Masterlist</h2>
+          <input type="text" id="masterlist-search" class="p-2 border rounded" placeholder="Search masterlist...">
+        </div>
         <table id="masterlist-table" class="display" style="width:100%">
             </table>
     </div>
@@ -1361,7 +1367,10 @@
 <!-- My Requests View -->
 <div id="my-requests-view" class="tab-content">
   <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold text-slate-800 mb-4">My Change Requests</h2>
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-slate-800">My Change Requests</h2>
+      <input type="text" id="my-requests-search" class="p-2 border rounded" placeholder="Search requests...">
+    </div>
     <table id="my-requests-table" class="display" style="width:100%">
     </table>
   </div>
@@ -1370,7 +1379,10 @@
 <!-- Approvals View -->
 <div id="approvals-view" class="tab-content">
   <div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold text-slate-800 mb-4">Change Request Approvals</h2>
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-slate-800">Change Request Approvals</h2>
+      <input type="text" id="approvals-search" class="p-2 border rounded" placeholder="Search approvals...">
+    </div>
     <table id="approvals-table" class="display" style="width:100%">
     </table>
   </div>
@@ -1590,7 +1602,7 @@ function handleLogin(response) {
 function showHomepage() {
   document.getElementById('tab-area').style.display = 'none';
   document.getElementById('homepage-view').style.display = 'block';
-  
+
   // Deactivate any active tab content/views to prevent them from persisting on the homepage
   document.querySelectorAll('.tab-content.active').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab.active').forEach(el => el.classList.remove('active'));
@@ -1605,49 +1617,39 @@ function navigateToView(viewType, defaultTabId) {
   const mainTitle = document.getElementById('main-title');
   const tabNav = document.getElementById('tab-navigation');
   const headerControls = document.getElementById('header-controls');
-  const myRequestsTab = document.getElementById('tab-my-requests');
-  const approvalsTab = document.getElementById('tab-approvals');
 
+  // Hide all tabs to reset state
+  document.querySelectorAll('#tab-navigation .tab').forEach(tab => {
+      tab.style.display = 'none';
+  });
+
+  // Show only the tabs for the selected view
+  const viewClassMap = {
+    'org': 'org-view-tab',
+    'analytics': 'analytics-view-tab',
+    'predictive': 'predictive-view-tab',
+    'competency': 'competency-view-tab'
+  };
+  const targetClass = viewClassMap[viewType];
+  if (targetClass) {
+      document.querySelectorAll(`#tab-navigation .${targetClass}`).forEach(tab => {
+          tab.style.display = 'flex';
+      });
+  }
+
+  // Handle view-specific UI elements
   headerControls.style.display = (viewType === 'org') ? 'flex' : 'none';
+  mainTitle.style.display = 'none';
+  tabNav.style.display = (viewType === 'predictive' || viewType === 'competency') ? 'none' : 'flex';
 
+  // **Explicitly set permission-based tabs for the org view**
   if (viewType === 'org') {
-    // For org chart view, specifically manage tabs based on permissions
-    mainTitle.style.display = 'none'; 
-    tabNav.style.display = 'flex'; // Show the nav bar for tabs
-    document.getElementById('tab-org-chart').style.display = 'flex';
+    document.getElementById('tab-my-requests').style.display = userCanEdit ? 'none' : 'flex';
+    document.getElementById('tab-approvals').style.display = userCanApprove ? 'flex' : 'none';
 
-    // Show/hide permission-based tabs
-    myRequestsTab.style.display = userCanEdit ? 'none' : 'flex';
-    approvalsTab.style.display = userCanApprove ? 'flex' : 'none';
-
-    // Hide all other tab groups
-    document.querySelectorAll('.analytics-view-tab, .predictive-view-tab, .competency-view-tab').forEach(t => t.style.display = 'none');
-
-    // Default to approvals tab if user can approve and is landing on the org view
     if (userCanApprove) {
       defaultTabId = 'approvals';
     }
-
-  } else {
-    // Logic for other views remains the same
-    if (viewType === 'predictive' || viewType === 'competency') {
-      mainTitle.style.display = 'none';
-      tabNav.style.display = 'none';
-    } else { // This covers 'analytics' and any other future views
-      mainTitle.style.display = 'none';
-      tabNav.style.display = 'flex';
-    }
-    
-    const viewClassMap = {
-      'analytics': 'analytics-view-tab',
-      'predictive': 'predictive-view-tab',
-      'competency': 'competency-view-tab'
-    };
-    const targetClass = viewClassMap[viewType];
-    
-    document.querySelectorAll('#tab-navigation .tab').forEach(tab => {
-        tab.style.display = tab.classList.contains(targetClass) ? 'flex' : 'none';
-    });
   }
 
   switchTab(defaultTabId);
@@ -2458,6 +2460,11 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
     populateFilters();
     // initializeCompetencyView(); // This will be moved to switchTab
     updateUI();
+
+    // Enable dashboard cards now that data is loaded
+    document.querySelectorAll('.dashboard-card.loading').forEach(card => {
+      card.classList.remove('loading');
+    });
   }
 
   function onFetchError(error) {
@@ -4101,7 +4108,7 @@ function initializeMasterlist() {
                     columns: data.headers.map(h => ({ title: h })),
                     responsive: false,
                     scrollX: true,
-                    dom: 'Bfrtip',
+                    dom: "<'flex justify-between items-center'lB>rtip",
                     buttons: [
                         'colvis',
                         {
@@ -4124,6 +4131,10 @@ function initializeMasterlist() {
                         emptyTable: "No data available in table",
                         zeroRecords: "No matching records found"
                     }
+                });
+
+                $('#masterlist-search').on('keyup', function(){
+                  masterlistDataTable.search($(this).val()).draw();
                 });
                 
                 masterlistDataLoaded = true;
@@ -5099,12 +5110,12 @@ function drawMyRequestsTable() {
 
 
       try { // Add try...catch around DataTable initialization
-          table.DataTable({
+          const myRequestsDataTable = table.DataTable({
             data: data.myRequests, // Use the received data
             columns: columns,      // Use the dynamically generated columns
             responsive: false,
             scrollX: true,
-            dom: 'Bfrtip',
+            dom: "<'flex justify-between items-center'lB>rtip",
             buttons: [
                 'colvis', // Standard column visibility button
                  {
@@ -5120,6 +5131,11 @@ function drawMyRequestsTable() {
                  zeroRecords: "No matching records found"
              }
           });
+
+          $('#my-requests-search').on('keyup', function(){
+            myRequestsDataTable.search($(this).val()).draw();
+          });
+
           console.log("DataTable initialized successfully."); // Log success
       } catch (e) {
          console.error("Error initializing DataTable:", e); // Log any DataTable errors
@@ -5205,12 +5221,12 @@ function drawApprovalsTable() {
         }
       });
 
-      table.DataTable({
+      const approvalsDataTable = table.DataTable({
         data: data.approvals,
         columns: columns,
         responsive: false,
         scrollX: true,
-        dom: 'Bfrtip',
+        dom: "<'flex justify-between items-center'lB>rtip",
         buttons: [
             'colvis',
              {
@@ -5227,6 +5243,10 @@ function drawApprovalsTable() {
          columnDefs: [
            { targets: '_all', render: $.fn.dataTable.render.text() }
          ]
+      });
+
+      $('#approvals-search').on('keyup', function(){
+        approvalsDataTable.search($(this).val()).draw();
       });
 
         // Re-apply specific renderers after initialization
