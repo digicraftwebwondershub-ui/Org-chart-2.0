@@ -1613,7 +1613,7 @@ function handleLogin(response) {
 function showHomepage() {
   document.getElementById('tab-area').style.display = 'none';
   document.getElementById('homepage-view').style.display = 'block';
-
+  
   // Deactivate any active tab content/views to prevent them from persisting on the homepage
   document.querySelectorAll('.tab-content.active').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab.active').forEach(el => el.classList.remove('active'));
@@ -1635,7 +1635,7 @@ function navigateToView(viewType, defaultTabId) {
 
   if (viewType === 'org') {
     // For org chart view, specifically manage tabs based on permissions
-    mainTitle.style.display = 'none';
+    mainTitle.style.display = 'none'; 
     tabNav.style.display = 'flex'; // Show the nav bar for tabs
     document.getElementById('tab-org-chart').style.display = 'flex';
 
@@ -1660,14 +1660,14 @@ function navigateToView(viewType, defaultTabId) {
       mainTitle.style.display = 'none';
       tabNav.style.display = 'flex';
     }
-
+    
     const viewClassMap = {
       'analytics': 'analytics-view-tab',
       'predictive': 'predictive-view-tab',
       'competency': 'competency-view-tab'
     };
     const targetClass = viewClassMap[viewType];
-
+    
     document.querySelectorAll('#tab-navigation .tab').forEach(tab => {
         tab.style.display = tab.classList.contains(targetClass) ? 'flex' : 'none';
     });
@@ -2474,7 +2474,7 @@ function drawEmployeeMovementCharts(forceRefresh = false) {
     if (userCanApprove) {
       document.getElementById('tab-approvals').style.display = 'block';
     }
-
+    
     // Fetch and display notification counts after main data is loaded
     google.script.run.withSuccessHandler(updateNotificationBadges).getRequestCounts();
 
