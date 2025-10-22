@@ -135,6 +135,52 @@ function processRequestAction(requestId, action, comments) {
   }
 }
 
+function getRequestCounts() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Org Chart Requests');
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { myRequestsPending: 0, myRequestsRejected: 0, approvals: 0 };
+    }
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const statusIndex = headers.indexOf('Status');
+    const requestorEmailIndex = headers.indexOf('RequestorEmail');
+    const approverEmailIndex = headers.indexOf('ApproverEmail');
+    const userEmail = Session.getActiveUser().getEmail().toLowerCase().trim();
+
+    let myRequestsPending = 0;
+    let myRequestsRejected = 0;
+    let approvalsCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = (row[statusIndex] || '').toString().toLowerCase().trim();
+
+      // Count for "My Requests" tab
+      if ((row[requestorEmailIndex] || '').toString().toLowerCase().trim() === userEmail) {
+        if (status === 'pending') {
+          myRequestsPending++;
+        } else if (status === 'rejected') {
+          myRequestsRejected++;
+        }
+      }
+
+      // Count for "Approvals" tab (only Pending)
+      if (status === 'pending' && (row[approverEmailIndex] || '').toString().toLowerCase().trim() === userEmail) {
+        approvalsCount++;
+      }
+    }
+
+    return { myRequestsPending, myRequestsRejected, approvals: approvalsCount };
+
+  } catch (e) {
+    Logger.log('Error in getRequestCounts: ' + e.message);
+    // In case of error, return zero counts to avoid breaking the UI
+    return { myRequestsPending: 0, myRequestsRejected: 0, approvals: 0 };
+  }
+}
+
 function getChangeRequests() {
   // Add a top-level try...catch for broader error capture
   try {
